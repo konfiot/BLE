@@ -4,4 +4,7 @@
     <string name="ble_not_supported">The device does not support BLE operations</string>
     <string name="blc_not_supported">The device does not support Bluetooth Classic operations</string>
     <string name="bt_disabled">Bluetooth is disabled</string>
+    <string name="unknown_btdevice_detected">Unknown Bluetooth device type detected</string>
+    <string name="scan_stopped">Stopped scanning for devices</string>
+    <string name="scan_start">Scanning for devices</string>
 </resources>
