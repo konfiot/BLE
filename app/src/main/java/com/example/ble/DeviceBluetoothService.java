@@ -5,7 +5,7 @@ import android.bluetooth.BluetoothDevice;
 import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public abstract class DeviceBluetoothSevice {
+public abstract class DeviceBluetoothService {
 
     protected LinkedBlockingQueue<String> txQueue, rxQueue;
 
@@ -13,7 +13,7 @@ public abstract class DeviceBluetoothSevice {
 
     protected ArrayList<BluetoothDevice> btDevices;
 
-    protected DeviceBluetoothSevice() {
+    protected DeviceBluetoothService() {
         txQueue = new LinkedBlockingQueue<>();
         rxQueue = new LinkedBlockingQueue<>();
         btDevices = new ArrayList<>();
