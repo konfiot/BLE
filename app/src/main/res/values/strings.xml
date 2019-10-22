@@ -9,4 +9,6 @@
     <string name="scan_start">Scanning for devices</string>
     <string name="ble_list">Ble detected devices</string>
     <string name="classic_list">Classic devices connected</string>
+    <string name="scan_for_devices">SCAN</string>
+    <string name="device_connection">CONNECT</string>
 </resources>
