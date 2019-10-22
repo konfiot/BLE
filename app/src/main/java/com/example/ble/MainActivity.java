@@ -20,14 +20,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
-
         List<String> s = new ArrayList<String>();
-        for(BluetoothDevice bt : pairedDevices)
-            s.add(bt.getName());
+
+        if (mBluetoothAdapter != null) {
+            Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
+
+            for (BluetoothDevice bt : pairedDevices)
+                s.add(bt.getName());
+        } else {
+            s.add("No Bluetooth adapeter found");
+        }
 
         ListView lv = (ListView) findViewById(R.id.devices_list);
 
-        lv.setAdapter(new ArrayAdapter<String>(this, R.layout.activity_main, s));
+        lv.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, s));
     }
 }
