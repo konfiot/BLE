@@ -7,4 +7,6 @@
     <string name="unknown_btdevice_detected">Unknown Bluetooth device type detected</string>
     <string name="scan_stopped">Stopped scanning for devices</string>
     <string name="scan_start">Scanning for devices</string>
+    <string name="ble_list">Ble detected devices</string>
+    <string name="classic_list">Classic devices connected</string>
 </resources>
