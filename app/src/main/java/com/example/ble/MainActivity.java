@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
             if(resultCode == Activity.RESULT_CANCELED) {
                 Toast.makeText(thisActivity, R.string.bt_disabled, Toast.LENGTH_SHORT).show();
                 thisActivity.finish();
-            }
+             }
         }
     }
 
