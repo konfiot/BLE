@@ -48,22 +48,35 @@
 
     <Button
         android:id="@+id/buttonScanForDevices"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
         android:layout_marginBottom="50dp"
         android:text="@string/scan_for_devices"
         app:layout_constraintBottom_toTopOf="@+id/textSnifferConsole"
-        app:layout_constraintEnd_toStartOf="@+id/textClassicDevices"
+        app:layout_constraintEnd_toStartOf="@+id/buttonConnectDevices"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/buttonConnectDevices"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
         android:layout_marginBottom="50dp"
         android:text="@string/device_connection"
         app:layout_constraintBottom_toTopOf="@+id/textSnifferConsole"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/Server"
         app:layout_constraintStart_toEndOf="@+id/buttonScanForDevices" />
+
+    <Button
+        android:id="@+id/Server"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp"
+        android:text="Server"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/buttonConnectDevices"
+        tools:layout_editor_absoluteY="290dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
