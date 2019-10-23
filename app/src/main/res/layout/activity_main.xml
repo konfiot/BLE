@@ -74,9 +74,10 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginEnd="10dp"
+        android:layout_marginBottom="50dp"
         android:text="Server"
+        app:layout_constraintBottom_toTopOf="@+id/textSnifferConsole"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/buttonConnectDevices"
-        tools:layout_editor_absoluteY="290dp" />
+        app:layout_constraintStart_toEndOf="@+id/buttonConnectDevices" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
