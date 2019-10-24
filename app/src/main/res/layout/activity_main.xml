@@ -6,56 +6,56 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/textSnifferConsole"
-        android:layout_width="315dp"
-        android:layout_height="344dp"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
-
     <ListView
         android:id="@+id/listViewBle"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textBleList"/>
+        app:layout_constraintEnd_toEndOf="@+id/textBleList"
+        app:layout_constraintStart_toStartOf="@+id/textBleList"
+        app:layout_constraintTop_toBottomOf="@+id/textBleList" />
 
     <ListView
         android:id="@+id/listViewBClassic"
+        android:layout_width="200dp"
         android:layout_height="wrap_content"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textClassicDevices"/>
+        app:layout_constraintEnd_toEndOf="@+id/textClassicDevices"
+        app:layout_constraintStart_toStartOf="@+id/textClassicDevices"
+        app:layout_constraintTop_toBottomOf="@+id/textClassicDevices" />
 
     <TextView
         android:id="@+id/textBleList"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="20dp"
         android:text="@string/ble_list"
         android:textSize="18sp"
-        app:layout_constraintBottom_toBottomOf="@+id/textClassicDevices"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/textClassicDevices"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
         android:text="@string/classic_list"
         android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/listViewBle" />
 
     <Button
         android:id="@+id/buttonScanForDevices"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:layout_marginBottom="50dp"
+        android:layout_marginBottom="15dp"
         android:text="@string/scan_for_devices"
-        app:layout_constraintBottom_toTopOf="@+id/textSnifferConsole"
+        app:layout_constraintBottom_toTopOf="@+id/buttonActAsBle"
         app:layout_constraintEnd_toStartOf="@+id/buttonConnectDevices"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="@+id/buttonStartBridge" />
 
     <Button
         android:id="@+id/buttonConnectDevices"
@@ -63,21 +63,52 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:layout_marginEnd="20dp"
-        android:layout_marginBottom="50dp"
         android:text="@string/device_connection"
-        app:layout_constraintBottom_toTopOf="@+id/textSnifferConsole"
+        app:layout_constraintBottom_toBottomOf="@+id/buttonScanForDevices"
         app:layout_constraintEnd_toStartOf="@+id/Server"
-        app:layout_constraintStart_toEndOf="@+id/buttonScanForDevices" />
+        app:layout_constraintStart_toEndOf="@+id/buttonScanForDevices"
+        app:layout_constraintTop_toTopOf="@+id/buttonScanForDevices" />
 
     <Button
         android:id="@+id/Server"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="10dp"
-        android:layout_marginBottom="50dp"
-        android:text="SERVER"
-        app:layout_constraintBottom_toTopOf="@+id/textSnifferConsole"
+        android:text="@string/server"
+        app:layout_constraintBottom_toBottomOf="@+id/buttonConnectDevices"
+        app:layout_constraintEnd_toEndOf="@+id/buttonStartBridge"
+        app:layout_constraintStart_toEndOf="@+id/buttonConnectDevices"
+        app:layout_constraintTop_toTopOf="@+id/buttonConnectDevices" />
+
+    <Button
+        android:id="@+id/buttonStartBridge"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="25dp"
+        android:layout_marginEnd="25dp"
+        android:layout_marginBottom="25dp"
+        android:text="@string/start_bridge"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/buttonActAsClassicBluetooth"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="15dp"
+        android:text="@string/act_as_bclasic"
+        app:layout_constraintBottom_toTopOf="@+id/buttonStartBridge"
+        app:layout_constraintEnd_toEndOf="@+id/buttonStartBridge"
         app:layout_constraintStart_toEndOf="@+id/buttonConnectDevices" />
+
+    <Button
+        android:id="@+id/buttonActAsBle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="15dp"
+        android:text="@string/act_as_ble"
+        app:layout_constraintBottom_toTopOf="@+id/buttonStartBridge"
+        app:layout_constraintEnd_toStartOf="@+id/buttonConnectDevices"
+        app:layout_constraintStart_toStartOf="@+id/buttonStartBridge" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

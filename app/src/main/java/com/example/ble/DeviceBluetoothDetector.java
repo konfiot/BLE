@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
+import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.util.Log;
 import android.widget.Toast;
@@ -24,10 +25,21 @@ public class DeviceBluetoothDetector {
 
     Handler handler = new Handler();
 
-    DeviceBluetoothDetector(Activity activity, DeviceBluetoothService btServices[], BluetoothAdapter btAdapter) {
+    DeviceBluetoothDetector(Activity activity, DeviceBluetoothService btServices[]) {
         this.activity = activity;
         this.btServices = btServices;
-        this.btAdapter = btAdapter;
+
+        if(!activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(activity, R.string.ble_not_supported, Toast.LENGTH_LONG).show();
+            activity.finish();
+        }
+
+        if(!activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)) {
+            Toast.makeText(activity, R.string.blc_not_supported, Toast.LENGTH_LONG).show();
+            activity.finish();
+        }
+
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
 
         bleScanner = btAdapter.getBluetoothLeScanner();
 

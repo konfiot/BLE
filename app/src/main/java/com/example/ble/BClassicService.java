@@ -1,10 +1,11 @@
 package com.example.ble;
 
+import android.content.Context;
+
 public class BClassicService extends DeviceBluetoothService {
 
-    BClassicService() {
+    BClassicService(Context context) {
         super();
-
     }
 
     @Override
