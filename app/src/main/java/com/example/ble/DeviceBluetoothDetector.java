@@ -16,7 +16,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 public class DeviceBluetoothDetector {
-    Activity activity;
+    MainActivity activity;
 
     DeviceBluetoothService btServices[];
 
@@ -26,7 +26,7 @@ public class DeviceBluetoothDetector {
 
     private SingBroadcastReceiver mReceiver;
 
-    DeviceBluetoothDetector(Activity activity, DeviceBluetoothService btServices[]) {
+    DeviceBluetoothDetector(MainActivity activity, DeviceBluetoothService btServices[]) {
         this.activity = activity;
         this.btServices = btServices;
 
@@ -80,11 +80,13 @@ public class DeviceBluetoothDetector {
         switch (device.getType()) {
             case BluetoothDevice.DEVICE_TYPE_CLASSIC:
                 btServices[1].addDevice(device);
+                activity.addClassic(device);
                 Toast.makeText(activity, "Classic device found : "+ device.getName() + " - " + device.getAddress() , Toast.LENGTH_SHORT).show();
 
                 break;
             case BluetoothDevice.DEVICE_TYPE_LE:
                 btServices[0].addDevice(device);
+                activity.addBle(device);
                 Toast.makeText(activity, "BLE device found : "+ device.getName() + " - " + device.getAddress(), Toast.LENGTH_SHORT).show();
 
                 break;
