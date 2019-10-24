@@ -3,6 +3,7 @@ package com.example.ble;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
 import android.util.Log;
 
 import java.io.IOException;
@@ -10,10 +11,12 @@ import java.util.UUID;
 
 public class AcceptThread extends Thread {
     private final BluetoothServerSocket mmServerSocket;
+    private final MainActivity activity;
 
-    public AcceptThread(BluetoothAdapter btAdapter) {
-
+    public AcceptThread(BluetoothAdapter btAdapter, MainActivity activity) {
+        this.activity = activity;
         BluetoothServerSocket tmp = null;
+
         try {
             tmp = btAdapter.listenUsingRfcommWithServiceRecord("Bluetooth Server", UUID.randomUUID());
         } catch (IOException e) {
@@ -24,6 +27,10 @@ public class AcceptThread extends Thread {
 
     public void run() {
         BluetoothSocket socket = null;
+        Intent discoverableIntent =
+                new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 600);
+        activity.startActivity(discoverableIntent);
 
         while (true) {
             try {
