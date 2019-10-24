@@ -82,6 +82,10 @@ public class DeviceBluetoothDetector {
     }
 
     private void addDeviceToProperService(BluetoothDevice device) {
+        if(!(device.fetchUuidsWithSdp())){
+            Toast.makeText(activity, "Failed to fetch UUIDs fore device "+ device.getName() + " - " + device.getAddress() , Toast.LENGTH_SHORT).show();
+        }
+
         switch (device.getType()) {
             case BluetoothDevice.DEVICE_TYPE_CLASSIC:
                 btServices[1].addDevice(device);
