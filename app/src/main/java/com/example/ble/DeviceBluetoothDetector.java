@@ -32,14 +32,22 @@ public class DeviceBluetoothDetector {
         if(!activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(activity, R.string.ble_not_supported, Toast.LENGTH_LONG).show();
             activity.finish();
+            return;
         }
 
         if(!activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)) {
             Toast.makeText(activity, R.string.blc_not_supported, Toast.LENGTH_LONG).show();
             activity.finish();
+            return;
         }
 
         btAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        if(btAdapter == null) {
+            Toast.makeText(activity, "No bluetooth adapter has been found", Toast.LENGTH_LONG).show();
+            activity.finish();
+            return;
+        }
 
         bleScanner = btAdapter.getBluetoothLeScanner();
 
