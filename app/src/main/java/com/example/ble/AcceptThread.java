@@ -15,7 +15,6 @@ public class AcceptThread extends Thread {
 
         BluetoothServerSocket tmp = null;
         try {
-            // MY_UUID is the app's UUID string, also used by the client code.
             tmp = btAdapter.listenUsingRfcommWithServiceRecord("Bluetooth Server", UUID.randomUUID());
         } catch (IOException e) {
             Log.e("Server", "Socket's listen() method failed", e);
@@ -25,7 +24,7 @@ public class AcceptThread extends Thread {
 
     public void run() {
         BluetoothSocket socket = null;
-        // Keep listening until exception occurs or a socket is returned.
+
         while (true) {
             try {
                 socket = mmServerSocket.accept();

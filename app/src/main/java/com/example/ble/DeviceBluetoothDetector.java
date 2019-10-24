@@ -53,6 +53,11 @@ public class DeviceBluetoothDetector {
 
     public void scanForDevices(final boolean enable) {
         if(enable) {
+            if (!btAdapter.isEnabled()) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                activity.startActivityForResult(enableBtIntent, 3);
+            }
+
             if (btAdapter.isDiscovering()){
                 btAdapter.cancelDiscovery();
             }
