@@ -30,22 +30,23 @@ public class ConnectThread extends Thread {
 
     public void run() {
         // Cancel discovery because it otherwise slows down the connection.
+        Log.i(TAG, "Connecting");
         try {
             // Connect to the remote device through the socket. This call blocks
             // until it succeeds or throws an exception.
             mmSocket.connect();
+            Log.i(TAG, "Connected");
         } catch (IOException connectException) {
             // Unable to connect; close the socket and return.
             try {
                 mmSocket.close();
+                Log.e(TAG, "Error Connecting", connectException);
             } catch (IOException closeException) {
                 Log.e(TAG, "Could not close the client socket", closeException);
             }
             return;
         }        // Use a temporary object that is later assigned to mmSocket
         // because mmSocket is final.
-
-
 
     }
 

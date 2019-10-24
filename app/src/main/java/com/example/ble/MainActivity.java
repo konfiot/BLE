@@ -129,10 +129,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(thisActivity, "Device " + device.getName() + " - " + device.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                detector.scanForDevices(false); // Stop discovery
                 Toast.makeText(thisActivity, "Connecting to " + device.getName() + " - " + device.getAddress() + " " + device.getUuids(), Toast.LENGTH_SHORT).show();
-                ConnectThread connect = new ConnectThread(device, device.getUuids()[0]);
-                connect.start();
             }
         });
 
@@ -150,10 +147,10 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(thisActivity, "Device " + device.getName() + " - " + device.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                detector.scanForDevices(false); // Stop discovery
-                Toast.makeText(thisActivity, "Connecting to " + device.getName() + " - " + device.getAddress() + " " + device.getUuids(), Toast.LENGTH_SHORT).show();
                 ConnectThread connect = new ConnectThread(device, device.getUuids()[0]);
                 connect.start();
+                Toast.makeText(thisActivity, "Connecting to " + device.getName() + " - " + device.getAddress() + " " + device.getUuids(), Toast.LENGTH_SHORT).show();
+
             }
         });
 
