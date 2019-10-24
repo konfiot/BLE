@@ -113,6 +113,13 @@ public class MainActivity extends AppCompatActivity {
         bclassicadapter.notifyDataSetChanged();
     }
 
+    public void startClassicServer(View view){
+        this.detector.scanForDevices(false);
+        new AcceptThread(btAdapter, this).start();
+        Toast.makeText(this, "Starting classic server", Toast.LENGTH_SHORT).show();
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
