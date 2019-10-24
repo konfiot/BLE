@@ -22,8 +22,6 @@ public class DeviceBluetoothDetector {
 
     BluetoothAdapter btAdapter;
 
-    Handler handler = new Handler();
-
     private SingBroadcastReceiver mReceiver;
 
     DeviceBluetoothDetector(MainActivity activity, DeviceBluetoothService btServices[]) {

@@ -8,6 +8,10 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattServer;
+import android.bluetooth.BluetoothGattServerCallback;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -22,6 +26,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -30,8 +35,11 @@ public class MainActivity extends AppCompatActivity {
     DeviceBluetoothDetector detector;
     BluetoothAdapter btAdapter;
     MainActivity thisActivity;
+    BluetoothManager bluetoothManager;
     final static int REQUEST_ENABLE_BT = 1;
     static final int PERMISSION_REQUEST_COARSE_LOCATION = 2;
+
+    BluetoothGattServer server;
 
     ArrayList<String> bleItems=new ArrayList<String>();
     ArrayList<BluetoothDevice> bleDevices=new ArrayList<BluetoothDevice>();
@@ -121,7 +129,47 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startBleServer(View view){
+        BluetoothGattServerCallback bluetoothGattServerCallback= new BluetoothGattServerCallback() {
+            @Override
+            public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
+                super.onConnectionStateChange(device, status, newState);
+            }
 
+            @Override
+            public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
+                super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value);
+                Toast.makeText(thisActivity, "BLE Received data : " + new String(value), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
+                super.onDescriptorReadRequest(device, requestId, offset, descriptor);
+            }
+
+            @Override
+            public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
+                super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
+            }
+
+            @Override
+            public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
+                super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
+                server.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, UUID.randomUUID().toString().getBytes());
+            }
+        };
+
+        server=bluetoothManager.openGattServer(this, bluetoothGattServerCallback);
+
+        BluetoothGattService service = new BluetoothGattService(UUID.fromString("f6ec37db-bda1-46ec-a43a-6d86de88561d"), BluetoothGattService.SERVICE_TYPE_PRIMARY);
+
+        BluetoothGattCharacteristic characteristic = new BluetoothGattCharacteristic(UUID.fromString("af20fbac251849989af7af42540731b3"),
+                BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE |
+                        BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+                BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
+
+        service.addCharacteristic(characteristic);
+
+        server.addService(service);
     }
 
     @Override
@@ -231,6 +279,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
+
+        bluetoothManager = (BluetoothManager) getSystemService(this.BLUETOOTH_SERVICE);
 
         bleService = new BleService(this);
         bclassicService = new BClassicService(this);
