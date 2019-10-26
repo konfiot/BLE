@@ -6,12 +6,16 @@ import android.os.ParcelUuid;
 import android.util.Log;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class ConnectThread extends Thread {
-    private final BluetoothSocket mmSocket;
+    private BluetoothSocket mmSocket;
     private final BluetoothDevice mmDevice;
     final String TAG = "Client";
     final ParcelUuid UUID;
+    private InputStream mmInStream;
+    private OutputStream mmOutStream;
 
     public ConnectThread(BluetoothDevice device, ParcelUuid UUID) {
         BluetoothSocket tmp = null;
@@ -36,6 +40,27 @@ public class ConnectThread extends Thread {
             // until it succeeds or throws an exception.
             mmSocket.connect();
             Log.i(TAG, "Connected");
+
+            mmSocket = mmSocket;
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            // Get the input and output streams; using temp objects because
+            // member streams are final.
+            try {
+                tmpIn = mmSocket.getInputStream();
+            } catch (IOException e) {
+                Log.e("Server", "Error occurred when creating input stream", e);
+            }
+            try {
+                tmpOut = mmSocket.getOutputStream();
+            } catch (IOException e) {
+                Log.e("Server", "Error occurred when creating output stream", e);
+            }
+
+            mmInStream = tmpIn;
+            mmOutStream = tmpOut;
+
         } catch (IOException connectException) {
             // Unable to connect; close the socket and return.
             try {
@@ -49,6 +74,16 @@ public class ConnectThread extends Thread {
         // because mmSocket is final.
 
     }
+
+    public void write(byte[] bytes) {
+        try {
+            mmOutStream.write(bytes);
+
+        } catch (IOException e) {
+            Log.e("Server", "Error occurred when sending data", e);
+        }
+    }
+
 
     // Closes the client socket and causes the thread to finish.
     public void cancel() {
