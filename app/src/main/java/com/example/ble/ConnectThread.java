@@ -15,13 +15,14 @@ public class ConnectThread extends Thread {
     final String TAG = "Client";
     final ParcelUuid UUID;
     private InputStream mmInStream;
+    private DeviceBluetoothService callback;
     private OutputStream mmOutStream;
 
-    public ConnectThread(BluetoothDevice device, ParcelUuid UUID) {
+    public ConnectThread(BluetoothDevice device, ParcelUuid UUID, DeviceBluetoothService callback) {
         BluetoothSocket tmp = null;
         mmDevice = device;
         this.UUID = UUID;
-
+        this.callback = callback;
         try {
             // Get a BluetoothSocket to connect with the given BluetoothDevice.
             // MY_UUID is the app's UUID string, also used in the server code.
@@ -35,6 +36,7 @@ public class ConnectThread extends Thread {
     public void run() {
         // Cancel discovery because it otherwise slows down the connection.
         Log.i(TAG, "Connecting");
+        byte[] read = new byte[32];
         try {
             // Connect to the remote device through the socket. This call blocks
             // until it succeeds or throws an exception.
@@ -60,6 +62,11 @@ public class ConnectThread extends Thread {
 
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
+
+            while (true){
+                tmpIn.read(read, 0, 32);
+                callback.sendDataToDevice(read.toString());
+            }
 
         } catch (IOException connectException) {
             // Unable to connect; close the socket and return.
