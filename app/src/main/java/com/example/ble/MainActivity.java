@@ -162,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
 
         BluetoothGattService service = new BluetoothGattService(UUID.fromString("f6ec37db-bda1-46ec-a43a-6d86de88561d"), BluetoothGattService.SERVICE_TYPE_PRIMARY);
 
-        BluetoothGattCharacteristic characteristic = new BluetoothGattCharacteristic(UUID.fromString("af20fbac251849989af7af42540731b3"),
+        BluetoothGattCharacteristic characteristic = new BluetoothGattCharacteristic(UUID.fromString("af20fbac-2518-4998-9af7-af42540731b3"),
                 BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE |
                         BluetoothGattCharacteristic.PROPERTY_NOTIFY,
                 BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
