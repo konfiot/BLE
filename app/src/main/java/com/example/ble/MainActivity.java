@@ -176,6 +176,27 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        if (!this.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_LONG).show();
+            this.finish();
+            return;
+        }
+
+        if (!this.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH)) {
+            Toast.makeText(this, R.string.blc_not_supported, Toast.LENGTH_LONG).show();
+            this.finish();
+            return;
+        }
+
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        if (btAdapter == null) {
+            Toast.makeText(this, "No bluetooth adapter has been found", Toast.LENGTH_LONG).show();
+            this.finish();
+            return;
+        }
+
+
 
         thisActivity = this;
 
@@ -285,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
 
         bleService = new BleService(this);
         bclassicService = new BClassicService(this);
-        detector = new DeviceBluetoothDetector(this, new DeviceBluetoothService[]{bleService, bclassicService});
+        detector = new DeviceBluetoothDetector(this, btAdapter, new DeviceBluetoothService[]{bleService, bclassicService});
         if (checkLocationPermission()) {
             detector.scanForDevices(true);
         }
