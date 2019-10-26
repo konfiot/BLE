@@ -54,9 +54,9 @@
         android:id="@+id/buttonScanForDevices"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="15dp"
+        android:layout_marginBottom="5dp"
         android:text="@string/scan_for_devices"
-        app:layout_constraintBottom_toTopOf="@+id/buttonActAsBle"
+        app:layout_constraintBottom_toTopOf="@+id/buttonStartBridge"
         app:layout_constraintEnd_toStartOf="@+id/buttonConnectDevices"
         app:layout_constraintStart_toStartOf="@+id/buttonStartBridge" />
 
@@ -95,25 +95,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
-        android:id="@+id/buttonActAsClassicBluetooth"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="15dp"
-        android:text="@string/act_as_bclasic"
-        app:layout_constraintBottom_toTopOf="@+id/buttonStartBridge"
-        app:layout_constraintEnd_toEndOf="@+id/buttonStartBridge"
-        app:layout_constraintStart_toEndOf="@+id/buttonConnectDevices" />
-
-    <Button
-        android:id="@+id/buttonActAsBle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="15dp"
-        android:text="@string/act_as_ble"
-        app:layout_constraintBottom_toTopOf="@+id/buttonStartBridge"
-        app:layout_constraintEnd_toStartOf="@+id/buttonConnectDevices"
-        app:layout_constraintStart_toStartOf="@+id/buttonStartBridge" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
