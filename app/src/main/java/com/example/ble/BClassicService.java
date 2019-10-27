@@ -1,20 +1,48 @@
 package com.example.ble;
 
 import android.content.Context;
+import android.widget.Toast;
 
 public class BClassicService extends DeviceBluetoothService {
 
+    AcceptThread commHandler;
+
     BClassicService(Context context) {
-        super();
+        super(context);
+        commHandler = null;
     }
 
     @Override
-    protected void sendDataToDevice(String data) {
-
+    protected void sendDataToDevice(byte data[]) {
+        commHandler.write(data);
+        serviceCB.dataSent(translateMessage("Classic TX: ", data));
     }
 
     @Override
-    protected String receiveDataFromDevice() {
-        return null;
+    protected boolean serviceIsActive() {
+        return commHandler != null;
+    }
+
+    @Override
+    public void addBluetoothCommunicationHandler(Object comHandler) {
+        if(comHandler instanceof AcceptThread) {
+            commHandler = (AcceptThread) comHandler;
+        } else {
+            Toast.makeText(context, R.string.incorret_hanlder_passed, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void endService()  {
+        if(commHandler != null) {
+            commHandler.cancel();
+        }
+        super.endService();
+    }
+
+    @Override
+    public void bluetoothDataReceptionCallback(byte[] data) {
+        serviceCB.dataReceived(translateMessage("Classic RX: ",data));
+        txQueue.add(data);
     }
 }
