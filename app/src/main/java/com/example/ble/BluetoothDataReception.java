@@ -2,5 +2,5 @@ package com.example.ble;
 
 public interface BluetoothDataReception {
 
-    void bluetoothDataReceptionCallback(String messageRX);
+    void bluetoothDataReceptionCallback(byte data[]);
 }
