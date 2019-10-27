@@ -1,6 +1,7 @@
 package com.example.ble;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -15,30 +16,31 @@ public class ConsoleActivity extends Activity {
 
     static TextView console;
 
-    private static BluetoothDataReception bleReceptor = new BluetoothDataReception() {
-        @Override
-        public void bluetoothDataReceptionCallback(String messageRX) {
-            if(classicService != null) {
-                classicService.txQueue.add(messageRX);
-            }
-            writeToConsole("BLE-RX: "+messageRX+"\n");
-        }
-    };
-
-
-    private static BluetoothDataReception classicReceptor = new BluetoothDataReception() {
-        @Override
-        public void bluetoothDataReceptionCallback(String messageRX) {
-            if(bleService != null) {
-                bleService.txQueue.add(messageRX);
-            }
-            writeToConsole("CLASSIC-RX: "+messageRX+"\n");
-        }
-    };
+    static Context mainContext;
 
     EditText transferConsol;
     Button sendToClassic;
     Button sendToBle;
+
+    private static BluetoothServiceStateChange callback = new BluetoothServiceStateChange() {
+
+        @Override
+        public void serviceStopped() {
+            bleService.endService();
+            classicService.endService();
+
+        }
+
+        @Override
+        public void dataSent(String data) {
+            writeToConsole(data);
+        }
+
+        @Override
+        public void dataReceived(String data) {
+            writeToConsole(data);
+        }
+    };
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -49,7 +51,7 @@ public class ConsoleActivity extends Activity {
         sendToBle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                bleService.sendDataToDevice(inputConsol.getText().toString());
+                bleService.sendDataToDevice(transferConsol.getText().toString());
             }
         });
         sendToBle.setVisibility(classicService == null ? View.INVISIBLE : View.VISIBLE);
@@ -58,7 +60,7 @@ public class ConsoleActivity extends Activity {
         sendToClassic.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                classicService.sendDataToDevice(inputConsol.getText().toString());
+                classicService.sendDataToDevice(transferConsol.getText().toString());
             }
         });
         sendToClassic.setVisibility(classicService == null ? View.INVISIBLE : View.VISIBLE);
@@ -70,17 +72,21 @@ public class ConsoleActivity extends Activity {
         console.append(outputString);
     }
 
+    static void passMainActivityContext(Context context) {
+        mainContext = context;
+    }
+
     static void passBleService(BleService service) {
         if(bleService == null || !bleService.equals(service)) {
             bleService = service;
-            bleService.setDataReceptionCallback(bleReceptor);
+            bleService.setServiceCallback(callback);
         }
     }
 
     static void passClassicService(BClassicService service) {
         if (classicService == null || !classicService.equals(service)){
             classicService = service;
-            classicService.setDataReceptionCallback(classicReceptor);
+            classicService.setServiceCallback(callback);
         }
     }
 
