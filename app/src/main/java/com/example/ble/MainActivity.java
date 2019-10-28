@@ -5,9 +5,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattServer;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
@@ -174,8 +172,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-
-
         bleService = new BleService(this);
 
         bclassicService = new BClassicService(this);
@@ -191,78 +187,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
                                     long id) {
-                BluetoothDevice device = bleDevices.get(position);
-                if (device.getUuids() == null){
-                    Toast.makeText(thisActivity, "Device " + device.getName() + " - " + device.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
+                BluetoothDevice deviceBle = bleDevices.get(position);
+                if (deviceBle.getUuids() == null){
+                    Toast.makeText(thisActivity, "Device " + deviceBle.getName() + " - " + deviceBle.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                Toast.makeText(thisActivity, "Connecting to " + device.getName() + " - " + device.getAddress() + " " + device.getUuids(), Toast.LENGTH_SHORT).show();
-                BluetoothGatt bluetoothGatt = device.connectGatt(thisActivity, false, new BluetoothGattCallback() {
-                    @Override
-                    public void onPhyUpdate(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
-                        super.onPhyUpdate(gatt, txPhy, rxPhy, status);
-                    }
-
-                    @Override
-                    public void onPhyRead(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
-                        super.onPhyRead(gatt, txPhy, rxPhy, status);
-                    }
-
-                    @Override
-                    public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-//                        if(newState == BluetoothProfile.STATE_CONNECTED) {
-//                            gatt.discoverServices();
-//                        }
-                    }
-
-                    @Override
-                    public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-                        super.onServicesDiscovered(gatt, status);
-                    }
-
-                    @Override
-                    public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                        super.onCharacteristicRead(gatt, characteristic, status);
-                    }
-
-                    @Override
-                    public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                    //  super.onCharacteristicWrite(gatt, characteristic, status);
-                        bclassicService.bluetoothDataReceptionCallback(characteristic.getValue());
-                    }
-
-                    @Override
-                    public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-                        super.onCharacteristicChanged(gatt, characteristic);
-                    }
-
-                    @Override
-                    public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-                        super.onDescriptorRead(gatt, descriptor, status);
-                    }
-
-                    @Override
-                    public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-                        super.onDescriptorWrite(gatt, descriptor, status);
-                    }
-
-                    @Override
-                    public void onReliableWriteCompleted(BluetoothGatt gatt, int status) {
-                        super.onReliableWriteCompleted(gatt, status);
-                    }
-
-                    @Override
-                    public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
-                        super.onReadRemoteRssi(gatt, rssi, status);
-                    }
-
-                    @Override
-                    public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
-                        super.onMtuChanged(gatt, mtu, status);
-                    }
-                });
-                bclassicService.addBluetoothCommunicationHandler(bluetoothGatt);
-
+                Toast.makeText(thisActivity, "Connecting to " + deviceBle.getName() + " - " + deviceBle.getAddress() + " " + deviceBle.getUuids(), Toast.LENGTH_SHORT).show();
+                BluetoothGatt bluetoothGatt = deviceBle.connectGatt(thisActivity, false, BleService.bleCallback);
+                bleService.setRxBehavior(bclassicService);
+                bleService.addBluetoothCommunicationHandler(bluetoothGatt);
             }
         });
 
@@ -281,8 +214,9 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                ConnectThread connect = new ConnectThread(device, device.getUuids()[0], bleService);
-                connect.start();
+                ConnectThread connectThread = new ConnectThread(device, device.getUuids()[0], bleService);
+                bclassicService.addBluetoothCommunicationHandler(connectThread);
+                connectThread.start();
                 Toast.makeText(thisActivity, "Connecting to " + device.getName() + " - " + device.getAddress() + " " + device.getUuids(), Toast.LENGTH_SHORT).show();
 
             }

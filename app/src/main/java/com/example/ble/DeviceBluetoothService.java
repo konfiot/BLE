@@ -91,4 +91,6 @@ public abstract class DeviceBluetoothService extends Thread implements Bluetooth
         }
         return builder.toString();
     }
+
+    abstract public void setRxBehavior(BluetoothDataReception rxBehavior);
 }

@@ -15,10 +15,10 @@ public class ConnectThread extends Thread {
     final String TAG = "Client";
     final ParcelUuid UUID;
     private InputStream mmInStream;
-    private DeviceBluetoothService callback;
+    private BluetoothDataReception callback;
     private OutputStream mmOutStream;
 
-    public ConnectThread(BluetoothDevice device, ParcelUuid UUID, DeviceBluetoothService callback) {
+    public ConnectThread(BluetoothDevice device, ParcelUuid UUID, BluetoothDataReception callback) {
         BluetoothSocket tmp = null;
         mmDevice = device;
         this.UUID = UUID;
@@ -33,12 +33,16 @@ public class ConnectThread extends Thread {
         mmSocket = tmp;
     }
 
+    public void updateCallBack(BluetoothDataReception callback) {
+        this.callback = callback;
+    }
+
     private boolean running;
 
     public void run() {
         // Cancel discovery because it otherwise slows down the connection.
         Log.i(TAG, "Connecting");
-        byte[] read = new byte[32];
+        byte[] readXfer = new byte[32];
         try {
             // Connect to the remote device through the socket. This call blocks
             // until it succeeds or throws an exception.
@@ -67,8 +71,8 @@ public class ConnectThread extends Thread {
             mmOutStream = tmpOut;
 
             while (running){
-                tmpIn.read(read, 0, 32);
-                callback.sendDataToDevice(read);
+                tmpIn.read(readXfer, 0, 32);
+                callback.bluetoothDataReceptionCallback(readXfer);
             }
 
         } catch (IOException connectException) {

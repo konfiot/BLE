@@ -82,7 +82,7 @@ public class ConsoleActivity extends Activity {
 
         sendToBle = findViewById(R.id.buttonSendBLE);
         sendToBle.setVisibility(currentConsoleType == ConsolType.CLASSIC_SERVER? View.INVISIBLE : View.VISIBLE);
-        sendToBle.setEnabled(currentConsoleType == ConsolType.BRIDGE);
+        sendToBle.setEnabled(currentConsoleType == ConsolType.BRIDGE && bleService.serviceIsActive());
         sendToBle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -130,6 +130,12 @@ public class ConsoleActivity extends Activity {
         classicService = clService;
         classicService.setServiceCallback(callback);
         currentConsoleType = ConsolType.BRIDGE;
+        if(!bleService.serviceIsActive()) {
+            classicService.setRxBehavior(deviceCommCallbackWhenMissingOtherHalf);
+        }
+        if(!classicService.serviceIsActive()) {
+            bleService.setRxBehavior(deviceCommCallbackWhenMissingOtherHalf);
+        }
     }
 
     static void passClassicServerConfig(MainActivity context, BluetoothAdapter adapter) {
@@ -185,5 +191,13 @@ public class ConsoleActivity extends Activity {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
             bleServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, UUID.randomUUID().toString().getBytes());
         }
+    };
+
+    public static BluetoothDataReception deviceCommCallbackWhenMissingOtherHalf = new BluetoothDataReception() {
+        @Override
+        public void bluetoothDataReceptionCallback(byte[] data) {
+            writeToConsole(DeviceBluetoothService.translateMessage("RX: ", data));
+        }
+
     };
 }

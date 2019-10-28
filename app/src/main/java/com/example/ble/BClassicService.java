@@ -41,6 +41,11 @@ public class BClassicService extends DeviceBluetoothService {
     }
 
     @Override
+    public void setRxBehavior(BluetoothDataReception rxBehavior) {
+        commHandler.updateCallBack(rxBehavior);
+    }
+
+    @Override
     public void bluetoothDataReceptionCallback(byte[] data) {
         serviceCB.dataReceived(translateMessage("Classic RX: ",data));
         txQueue.add(data);
