@@ -5,7 +5,7 @@ import android.widget.Toast;
 
 public class BClassicService extends DeviceBluetoothService {
 
-    AcceptThread commHandler;
+    ConnectThread commHandler;
 
     BClassicService(Context context) {
         super(context);
@@ -25,8 +25,8 @@ public class BClassicService extends DeviceBluetoothService {
 
     @Override
     public void addBluetoothCommunicationHandler(Object comHandler) {
-        if(comHandler instanceof AcceptThread) {
-            commHandler = (AcceptThread) comHandler;
+        if(comHandler instanceof ConnectThread) {
+            commHandler = (ConnectThread) comHandler;
         } else {
             Toast.makeText(context, R.string.incorret_hanlder_passed, Toast.LENGTH_LONG).show();
         }

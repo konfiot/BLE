@@ -9,7 +9,6 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattServer;
-import android.bluetooth.BluetoothGattServerCallback;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Intent;
@@ -38,6 +37,8 @@ public class MainActivity extends AppCompatActivity {
     BluetoothManager bluetoothManager;
     final static int REQUEST_ENABLE_BT = 1;
     static final int PERMISSION_REQUEST_COARSE_LOCATION = 2;
+
+    public final static UUID characteristicUUID = UUID.fromString("af20fbac-2518-4998-9af7-af42540731b3");
 
     BluetoothGattServer server;
 
@@ -123,42 +124,14 @@ public class MainActivity extends AppCompatActivity {
 
     public void startClassicServer(View view){
         this.detector.scanForDevices(false);
-        new AcceptThread(btAdapter, this).start();
+        ConsoleActivity.passClassicServerConfig(this, btAdapter);
         Toast.makeText(this, "Starting classic server", Toast.LENGTH_SHORT).show();
-
+        Intent intent = new Intent(this, ConsoleActivity.class);
+        startActivity(intent);
     }
 
     public void startBleServer(View view){
-        BluetoothGattServerCallback bluetoothGattServerCallback= new BluetoothGattServerCallback() {
-            @Override
-            public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
-                super.onConnectionStateChange(device, status, newState);
-            }
-
-            @Override
-            public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
-                super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value);
-                Toast.makeText(thisActivity, "BLE Received data : " + new String(value), Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
-                super.onDescriptorReadRequest(device, requestId, offset, descriptor);
-            }
-
-            @Override
-            public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
-                super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
-            }
-
-            @Override
-            public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
-                super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
-                server.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, UUID.randomUUID().toString().getBytes());
-            }
-        };
-
-        server=bluetoothManager.openGattServer(this, bluetoothGattServerCallback);
+        server = bluetoothManager.openGattServer(this, ConsoleActivity.bluetoothGattServerCallback);
 
         BluetoothGattService service = new BluetoothGattService(UUID.fromString("f6ec37db-bda1-46ec-a43a-6d86de88561d"), BluetoothGattService.SERVICE_TYPE_PRIMARY);
 
@@ -170,6 +143,11 @@ public class MainActivity extends AppCompatActivity {
         service.addCharacteristic(characteristic);
 
         server.addService(service);
+
+        ConsoleActivity.passBLEConfiguration(this, server);
+
+        Intent intent = new Intent(this, ConsoleActivity.class);
+        startActivity(intent);
     }
 
     @Override
@@ -198,9 +176,14 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+        bleService = new BleService(this);
+
+        bclassicService = new BClassicService(this);
+
+
         thisActivity = this;
 
-        bleadapter=new ArrayAdapter<String>(this,
+        bleadapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1,
                 bleItems);
         ((ListView)findViewById(R.id.listViewBle)).setAdapter(bleadapter);
@@ -227,7 +210,9 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-                        super.onConnectionStateChange(gatt, status, newState);
+//                        if(newState == BluetoothProfile.STATE_CONNECTED) {
+//                            gatt.discoverServices();
+//                        }
                     }
 
                     @Override
@@ -242,7 +227,8 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                        super.onCharacteristicWrite(gatt, characteristic, status);
+                    //  super.onCharacteristicWrite(gatt, characteristic, status);
+                        bclassicService.bluetoothDataReceptionCallback(characteristic.getValue());
                     }
 
                     @Override
@@ -275,12 +261,13 @@ public class MainActivity extends AppCompatActivity {
                         super.onMtuChanged(gatt, mtu, status);
                     }
                 });
+                bclassicService.addBluetoothCommunicationHandler(bluetoothGatt);
 
             }
         });
 
 
-        bclassicadapter=new ArrayAdapter<String>(this,
+        bclassicadapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1,
                 bclassicItems);
         ((ListView)findViewById(R.id.listViewBClassic)).setAdapter(bclassicadapter);
@@ -294,23 +281,32 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                ConnectThread connect = new ConnectThread(device, device.getUuids()[0]);
+                ConnectThread connect = new ConnectThread(device, device.getUuids()[0], bleService);
                 connect.start();
                 Toast.makeText(thisActivity, "Connecting to " + device.getName() + " - " + device.getAddress() + " " + device.getUuids(), Toast.LENGTH_SHORT).show();
 
             }
         });
 
-
-
         bluetoothManager = (BluetoothManager) getSystemService(this.BLUETOOTH_SERVICE);
 
-        bleService = new BleService(this);
-        bclassicService = new BClassicService(this);
         detector = new DeviceBluetoothDetector(this, btAdapter, new DeviceBluetoothService[]{bleService, bclassicService});
         if (checkLocationPermission()) {
             detector.scanForDevices(true);
         }
+    }
+
+    public void restartDetection(View view) {
+        if (checkLocationPermission()) {
+            detector.scanForDevices(false);
+            detector.scanForDevices(true);
+        }
+    }
+
+    public void startBridgeMode(View view) {
+        ConsoleActivity.passBridgeConfig(this, bleService, bclassicService);
+        Intent intent = new Intent(this, ConsoleActivity.class);
+        startActivity(intent);
     }
 }
 

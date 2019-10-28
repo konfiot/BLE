@@ -5,18 +5,19 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.content.Context;
 import android.widget.Toast;
 
+import java.util.UUID;
+
 public class BleService extends DeviceBluetoothService {
 
     BluetoothGatt comHandler;
-    BluetoothGattCharacteristic bleCharact;
+    BluetoothGattCharacteristic bleCharact = new BluetoothGattCharacteristic(UUID.fromString("af20fbac-2518-4998-9af7-af42540731b3"),
+            BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE |
+                    BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+            BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
 
     BleService(Context context) {
         super(context);
         comHandler = null;
-    }
-
-    public void addBLECharactarestic(BluetoothGattCharacteristic bleCharact) {
-        this.bleCharact = bleCharact;
     }
 
     @Override
@@ -42,7 +43,7 @@ public class BleService extends DeviceBluetoothService {
 
     @Override
     public void endService() {
-        //TODO: Add special end fo the service
+        comHandler.close();
         super.endService();
     }
 

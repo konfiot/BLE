@@ -12,11 +12,13 @@
     <string name="scan_for_devices">SCAN</string>
     <string name="device_connection">CONNECT</string>
     <string name="stop_bridge">STOP OPERATION</string>
-    <string name="sniffer_screen_title">Bridge communication screen</string>
+    <string name="sniffer_screen_title">Transfer communication screen</string>
     <string name="send_to_ble">SEND BLE</string>
     <string name="send_to_classic">SEND CLASSIC</string>
     <string name="start_bridge">START BRIDGE</string>
     <string name="act_as_bclasic">CLASSIC MODE</string>
     <string name="act_as_ble">BLE MODE</string>
     <string name="server">SERVER</string>
+    <string name="out_put_message">Output message</string>
+    <string name="incorret_hanlder_passed">ERROR: Incorrect Bluetooth communication hanlder passed</string>
 </resources>

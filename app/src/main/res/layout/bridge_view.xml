@@ -14,8 +14,7 @@
             android:id="@+id/stopButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="25dp"
+            android:layout_marginStart="8dp"
             android:onClick="returnToMainActivity"
             android:text="@string/stop_bridge"
             app:layout_constraintStart_toStartOf="parent"
@@ -25,14 +24,15 @@
             android:id="@+id/textTittle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
             android:fontFamily="sans-serif"
             android:text="@string/sniffer_screen_title"
             android:textColor="#FA000000"
             android:textSize="18sp"
-            app:layout_constraintBottom_toBottomOf="@+id/stopButton"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/stopButton"
-            app:layout_constraintTop_toTopOf="@+id/stopButton" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/stopButton" />
 
         <EditText
             android:id="@+id/editSendMessage"
@@ -40,6 +40,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
             android:ems="10"
+            android:hint="@string/out_put_message"
             android:inputType="textPersonName"
             app:layout_constraintBottom_toTopOf="@+id/buttonSendClassic"
             app:layout_constraintEnd_toEndOf="parent"
@@ -66,13 +67,13 @@
             app:layout_constraintEnd_toEndOf="parent" />
 
         <ScrollView
+            android:id="@+id/scrollView2"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_marginTop="15dp"
             app:layout_constraintBottom_toTopOf="@+id/editSendMessage"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/stopButton">
+            app:layout_constraintTop_toBottomOf="@+id/textTittle">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"

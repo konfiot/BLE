@@ -4,8 +4,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
-import android.os.Bundle;
-import android.os.Message;
 import android.util.Log;
 
 import java.io.IOException;
@@ -21,11 +19,13 @@ public class AcceptThread extends Thread {
     private InputStream mmInStream;
     private OutputStream mmOutStream;
     private byte[] mmBuffer; // mmBuffer store for the stream
+    private BluetoothDataReception rxCalback;
 
 
-    public AcceptThread(BluetoothAdapter btAdapter, MainActivity activity) {
+    public AcceptThread(BluetoothAdapter btAdapter, MainActivity activity, BluetoothDataReception rxCalback) {
         this.activity = activity;
         BluetoothServerSocket tmp = null;
+        this.rxCalback = rxCalback;
 
         try {
             tmp = btAdapter.listenUsingRfcommWithServiceRecord("Bluetooth Server", UUID.randomUUID());
@@ -33,9 +33,13 @@ public class AcceptThread extends Thread {
             Log.e("Server", "Socket's listen() method failed", e);
         }
         mmServerSocket = tmp;
-
-
     }
+
+    public void setCallback(BluetoothDataReception rxCalback) {
+        this.rxCalback = rxCalback;
+    }
+
+    private boolean runningRx, running;
 
     public void run() {
         BluetoothSocket socket = null;
@@ -43,8 +47,10 @@ public class AcceptThread extends Thread {
                 new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 600);
         activity.startActivity(discoverableIntent);
-
-        while (true) {
+        running = true;
+        runningRx = true;
+        byte[] readXfer = new byte[32];
+        while (running) {
             try {
                 socket = mmServerSocket.accept();
             } catch (IOException e) {
@@ -73,6 +79,16 @@ public class AcceptThread extends Thread {
                 mmInStream = tmpIn;
                 mmOutStream = tmpOut;
 
+                while(runningRx && running) {
+                    try {
+                        tmpIn.read(readXfer, 0, 32);
+                        rxCalback.bluetoothDataReceptionCallback(readXfer);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        break;
+                    }
+
+                }
 
                 try {
                     mmServerSocket.close();
@@ -88,6 +104,7 @@ public class AcceptThread extends Thread {
     public void cancel() {
         try {
             mmServerSocket.close();
+            running = false;
         } catch (IOException e) {
             Log.e("Server", "Could not close the connect socket", e);
         }

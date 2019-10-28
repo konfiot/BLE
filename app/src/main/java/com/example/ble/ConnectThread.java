@@ -33,6 +33,8 @@ public class ConnectThread extends Thread {
         mmSocket = tmp;
     }
 
+    private boolean running;
+
     public void run() {
         // Cancel discovery because it otherwise slows down the connection.
         Log.i(TAG, "Connecting");
@@ -46,6 +48,7 @@ public class ConnectThread extends Thread {
             mmSocket = mmSocket;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
+            running = true;
 
             // Get the input and output streams; using temp objects because
             // member streams are final.
@@ -63,9 +66,9 @@ public class ConnectThread extends Thread {
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
 
-            while (true){
+            while (running){
                 tmpIn.read(read, 0, 32);
-                callback.sendDataToDevice(read.toString());
+                callback.sendDataToDevice(read);
             }
 
         } catch (IOException connectException) {
@@ -96,6 +99,7 @@ public class ConnectThread extends Thread {
     public void cancel() {
         try {
             mmSocket.close();
+            running = false;
         } catch (IOException e) {
             Log.e(TAG, "Could not close the client socket", e);
         }

@@ -82,7 +82,7 @@ public abstract class DeviceBluetoothService extends Thread implements Bluetooth
         }
     }
 
-    protected String translateMessage(String initialPart, byte[] data) {
+    public static String translateMessage(String initialPart, byte[] data) {
         StringBuilder builder = new StringBuilder(initialPart);
         try {
             builder.append(new String(data, Charset.defaultCharset()));
