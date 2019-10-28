@@ -99,9 +99,15 @@ public class ConnectThread extends Thread {
     public void cancel() {
         try {
             mmSocket.close();
-            running = false;
+
         } catch (IOException e) {
             Log.e(TAG, "Could not close the client socket", e);
+        }
+        running = false;
+        try {
+            join();
+        } catch (InterruptedException e) {
+            Log.v(TAG, e.toString());
         }
     }
 }

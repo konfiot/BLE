@@ -62,13 +62,22 @@ public class ConsoleActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.bridge_view);
 
-        if(currentConsoleType == ConsolType.CLASSIC_SERVER) {
-            classicServer = new AcceptThread(btAdapter, mainContext, new BluetoothDataReception() {
-                @Override
-                public void bluetoothDataReceptionCallback(byte[] data) {
-                    writeToConsole(DeviceBluetoothService.translateMessage("RX: ", data));
-                }
-            });
+        switch(currentConsoleType) {
+            case CLASSIC_SERVER:
+                classicServer = new AcceptThread(btAdapter, mainContext, new BluetoothDataReception() {
+                    @Override
+                    public void bluetoothDataReceptionCallback(byte[] data) {
+                        writeToConsole(DeviceBluetoothService.translateMessage("RX: ", data));
+                    }
+                });
+                classicServer.start();
+                break;
+            case BRIDGE:
+                classicService.start();
+                bleService.start();
+                break;
+            case BLE_SERVER:
+                break;
         }
 
         sendToBle = findViewById(R.id.buttonSendBLE);

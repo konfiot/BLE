@@ -104,9 +104,15 @@ public class AcceptThread extends Thread {
     public void cancel() {
         try {
             mmServerSocket.close();
-            running = false;
+
         } catch (IOException e) {
             Log.e("Server", "Could not close the connect socket", e);
+        }
+        running = false;
+        try{
+            join();
+        } catch(InterruptedException e) {
+            Log.v("Server", e.toString());
         }
     }
 
@@ -114,7 +120,6 @@ public class AcceptThread extends Thread {
     public void write(byte[] bytes) {
         try {
             mmOutStream.write(bytes);
-
         } catch (IOException e) {
             Log.e("Server", "Error occurred when sending data", e);
         }

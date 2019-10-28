@@ -68,7 +68,7 @@
         android:layout_marginStart="20dp"
         android:layout_marginEnd="20dp"
         android:onClick="startBleServer"
-        android:text="BLE Server"
+        android:text="@string/ble_server"
         app:layout_constraintBottom_toBottomOf="@+id/buttonScanForDevices"
         app:layout_constraintEnd_toStartOf="@+id/Server"
         app:layout_constraintStart_toEndOf="@+id/buttonScanForDevices"
