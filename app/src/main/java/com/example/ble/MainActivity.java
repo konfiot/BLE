@@ -131,6 +131,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startBleServer(View view){
+        Intent discoverableIntent =
+                new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 600);
+        this.startActivity(discoverableIntent);
+
         server = bluetoothManager.openGattServer(this, ConsoleActivity.bluetoothGattServerCallback);
 
         BluetoothGattService service = new BluetoothGattService(UUID.fromString("f6ec37db-bda1-46ec-a43a-6d86de88561d"), BluetoothGattService.SERVICE_TYPE_PRIMARY);
