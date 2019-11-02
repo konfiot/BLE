@@ -13,17 +13,19 @@
         app:layout_constraintBottom_toTopOf="@+id/textClassicDevices"
         app:layout_constraintEnd_toEndOf="@+id/textBleList"
         app:layout_constraintStart_toStartOf="@+id/textBleList"
-        app:layout_constraintTop_toBottomOf="@+id/textBleList" />
+        app:layout_constraintTop_toBottomOf="@+id/textBleSelected" />
 
     <ListView
         android:id="@+id/listViewBClassic"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/buttonScanForDevices"
+        app:layout_constraintBottom_toTopOf="@+id/buttonConnectDevices"
         app:layout_constraintEnd_toEndOf="@+id/textClassicDevices"
         app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="@+id/textClassicDevices"
-        app:layout_constraintTop_toBottomOf="@+id/textClassicDevices" />
+        app:layout_constraintTop_toBottomOf="@+id/testClassicSelected">
+
+    </ListView>
 
     <TextView
         android:id="@+id/textBleList"
@@ -97,5 +99,23 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/testClassicSelected"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/classic_selected"
+        app:layout_constraintEnd_toEndOf="@+id/textClassicDevices"
+        app:layout_constraintStart_toStartOf="@+id/textClassicDevices"
+        app:layout_constraintTop_toBottomOf="@+id/textClassicDevices" />
+
+    <TextView
+        android:id="@+id/textBleSelected"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/ble_selected"
+        app:layout_constraintEnd_toEndOf="@+id/textBleList"
+        app:layout_constraintStart_toStartOf="@+id/textBleList"
+        app:layout_constraintTop_toBottomOf="@+id/textBleList" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
