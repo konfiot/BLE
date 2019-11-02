@@ -4,14 +4,21 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.widget.Toast;
 
 import java.util.UUID;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public class BleService extends DeviceBluetoothService {
 
     private static BluetoothDataReception rxBehavior;
+    private static BleService service;
+
+    private static LinkedBlockingQueue<Boolean> serviceResponceCheck;
 
     BluetoothGatt comHandler;
     BluetoothGattCharacteristic bleCharact = new BluetoothGattCharacteristic(UUID.fromString("af20fbac-2518-4998-9af7-af42540731b3"),
@@ -23,6 +30,8 @@ public class BleService extends DeviceBluetoothService {
         super(context);
         comHandler = null;
         rxBehavior = null;
+        service = this;
+        serviceResponceCheck = new LinkedBlockingQueue<Boolean>(1) ;
     }
 
     @Override
@@ -79,27 +88,52 @@ public class BleService extends DeviceBluetoothService {
         txQueue.add(data);
     }
 
-    public static BluetoothGattCallback bleCallback =  new BluetoothGattCallback() {
-        @Override
-        public void onPhyUpdate(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
-            super.onPhyUpdate(gatt, txPhy, rxPhy, status);
-        }
+    @Override
+    public void bluetoothConnectionChanged(boolean connected) {
+        if(!connected) {
 
-        @Override
-        public void onPhyRead(BluetoothGatt gatt, int txPhy, int rxPhy, int status) {
-            super.onPhyRead(gatt, txPhy, rxPhy, status);
         }
+    }
+
+
+    public boolean correctDevice() {
+        comHandler.discoverServices();
+        try {
+            Boolean good = serviceResponceCheck.poll(2, TimeUnit.SECONDS);
+            if(good != null && good) {
+                BluetoothGattDescriptor descriptor = new BluetoothGattDescriptor(BleServerMode.BLE_XFER_SERVICE,
+                        BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE);
+                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                comHandler.writeDescriptor(descriptor);
+            }
+            return false;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static BluetoothGattCallback bleCallback =  new BluetoothGattCallback() {
 
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-//                        if(newState == BluetoothProfile.STATE_CONNECTED) {
-//                            gatt.discoverServices();
-//                        }
+            if(newState == BluetoothProfile.STATE_CONNECTED) {
+                Toast.makeText(service.context, "Connected to GATT server.", Toast.LENGTH_LONG).show();
+            } else if( newState == BluetoothProfile.STATE_DISCONNECTED) {
+                Toast.makeText(service.context, "Disconnected from GATT server", Toast.LENGTH_LONG).show();
+            }
         }
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            super.onServicesDiscovered(gatt, status);
+            for( BluetoothGattService service : gatt.getServices() ) {
+                if(BleServerMode.BLE_XFER_SERVICE.equals(service.getUuid())) {
+                    serviceResponceCheck.add(true);
+                    return;
+                }
+            }
+            serviceResponceCheck.add(false);
+
         }
 
         @Override
@@ -126,22 +160,7 @@ public class BleService extends DeviceBluetoothService {
 
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-            super.onDescriptorWrite(gatt, descriptor, status);
-        }
-
-        @Override
-        public void onReliableWriteCompleted(BluetoothGatt gatt, int status) {
-            super.onReliableWriteCompleted(gatt, status);
-        }
-
-        @Override
-        public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
-            super.onReadRemoteRssi(gatt, rssi, status);
-        }
-
-        @Override
-        public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
-            super.onMtuChanged(gatt, mtu, status);
+            if()
         }
     };
 }
