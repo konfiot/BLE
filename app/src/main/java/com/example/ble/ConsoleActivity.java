@@ -4,19 +4,14 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattServer;
-import android.bluetooth.BluetoothGattServerCallback;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-
-import java.util.UUID;
 
 public class ConsoleActivity extends Activity {
 
@@ -30,7 +25,7 @@ public class ConsoleActivity extends Activity {
 
     static AcceptThread classicServer;
 
-    static BluetoothGattServer bleServer;
+    static BleServerMode bleServer;
 
     static ConsolType currentConsoleType = ConsolType.BRIDGE;
 
@@ -64,12 +59,7 @@ public class ConsoleActivity extends Activity {
 
         switch(currentConsoleType) {
             case CLASSIC_SERVER:
-                classicServer = new AcceptThread(btAdapter, mainContext, new BluetoothDataReception() {
-                    @Override
-                    public void bluetoothDataReceptionCallback(byte[] data) {
-                        writeToConsole(DeviceBluetoothService.translateMessage("RX: ", data));
-                    }
-                });
+                classicServer = new AcceptThread(btAdapter, mainContext, deviceCommCallbackWhenMissingOtherHalf);
                 classicServer.start();
                 break;
             case BRIDGE:
@@ -77,6 +67,13 @@ public class ConsoleActivity extends Activity {
                 bleService.start();
                 break;
             case BLE_SERVER:
+                bleServer.setRxCallback(deviceCommCallbackWhenMissingOtherHalf);
+                bleServer.startServer();
+                bleServer.startAdvertising();
+//                Intent discoverableIntent =
+//                        new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+//                discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 600);
+//                this.startActivity(discoverableIntent);
                 break;
         }
 
@@ -90,8 +87,9 @@ public class ConsoleActivity extends Activity {
                     bleService.sendDataToDevice(transferConsol.getText().toString());
                 } else {
                     writeToConsole("TX: " + transferConsol.getText().toString());
+                    bleServer.writeDataToDevice(transferConsol.getText().toString());
                 }
-                transferConsol.setText("");
+                transferConsol.setText(R.string.out_put_message);
             }
         });
 
@@ -106,7 +104,7 @@ public class ConsoleActivity extends Activity {
                     writeToConsole("TX: " + transferConsol.getText().toString());
                     classicServer.write(transferConsol.getText().toString().getBytes());
                 }
-                transferConsol.setText("");
+                transferConsol.setText(R.string.out_put_message);
             }
         });
         transferConsol = findViewById(R.id.editSendMessage);
@@ -117,7 +115,7 @@ public class ConsoleActivity extends Activity {
         console.append(outputString);
     }
 
-    static void passBLEConfiguration(MainActivity mainActivity, BluetoothGattServer server) {
+    static void passBLEConfiguration(MainActivity mainActivity, BleServerMode server) {
         mainContext = mainActivity;
         bleServer = server;
         currentConsoleType = ConsolType.BLE_SERVER;
@@ -138,6 +136,47 @@ public class ConsoleActivity extends Activity {
         }
     }
 
+    static boolean newBridgePassConfig(MainActivity mainActivity, BluetoothDevice bleDevice, BluetoothDevice classicDevice, BleService leService, BClassicService clService) {
+        if(bleDevice != null) {
+            if (bleDevice.getUuids() == null) {
+                Toast.makeText(mainActivity, "Device " + bleDevice.getName() + " - " + bleDevice.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+            Toast.makeText(mainActivity, "Connecting to " +  bleDevice.getName() + " - " + bleDevice.getAddress()  + " " + bleDevice.getUuids(), Toast.LENGTH_SHORT).show();
+            BluetoothGatt bluetoothGatt = bleDevice.connectGatt(mainActivity, false, BleService.bleCallback);
+            if(classicDevice != null) {
+                leService.setRxBehavior(clService);
+            } else {
+                leService.setRxBehavior(deviceCommCallbackWhenMissingOtherHalf);
+            }
+            leService.addBluetoothCommunicationHandler(bluetoothGatt);
+            if(!leService.correctDevice()) {
+                Toast.makeText(mainActivity, R.string.incorrect_ble_connected, Toast.LENGTH_LONG).show();
+                return false;
+            }
+            bleService = leService;
+        }
+        if(classicDevice != null) {
+            if (classicDevice.getUuids() == null){
+                Toast.makeText(mainActivity, "Device " + classicDevice.getName() + " - " + classicDevice.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+
+            ConnectThread connectThread;
+            if(bleDevice != null) {
+                connectThread = new ConnectThread(classicDevice, classicDevice.getUuids()[0], bleService);
+
+            } else {
+                connectThread = new ConnectThread(classicDevice, classicDevice.getUuids()[0], deviceCommCallbackWhenMissingOtherHalf);
+            }
+            clService.addBluetoothCommunicationHandler(connectThread);
+            connectThread.start();
+            Toast.makeText(mainActivity, "Connecting to " + classicDevice.getName() + " - " + classicDevice.getAddress() + " " + classicDevice.getUuids(), Toast.LENGTH_SHORT).show();
+        }
+        currentConsoleType = ConsolType.BRIDGE;
+        return true;
+    }
+
     static void passClassicServerConfig(MainActivity context, BluetoothAdapter adapter) {
         mainContext = context;
         btAdapter = adapter;
@@ -147,7 +186,8 @@ public class ConsoleActivity extends Activity {
     public void returnToMainActivity(View view) {
         switch(currentConsoleType) {
             case BLE_SERVER:
-
+                bleServer.stopAdvertising();
+                bleServer.stopServer();
                 break;
             case CLASSIC_SERVER:
                 classicServer.cancel();
@@ -163,40 +203,20 @@ public class ConsoleActivity extends Activity {
         finish();
     }
 
-    public static BluetoothGattServerCallback bluetoothGattServerCallback= new BluetoothGattServerCallback() {
-        @Override
-        public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
-            super.onConnectionStateChange(device, status, newState);
-        }
+    public static void endConsoleView() {
 
-        @Override
-        public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
-//            Toast.makeText(thisActivity, "BLE Received data : " + new String(value), Toast.LENGTH_SHORT).show();
-            writeToConsole(DeviceBluetoothService.translateMessage("RX: ", value));
-        }
-
-        @Override
-        public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
-            super.onDescriptorReadRequest(device, requestId, offset, descriptor);
-        }
-
-        @Override
-        public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
-            super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value);
-
-        }
-
-        @Override
-        public void onCharacteristicReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattCharacteristic characteristic) {
-            super.onCharacteristicReadRequest(device, requestId, offset, characteristic);
-            bleServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, UUID.randomUUID().toString().getBytes());
-        }
-    };
+    }
 
     public static BluetoothDataReception deviceCommCallbackWhenMissingOtherHalf = new BluetoothDataReception() {
         @Override
         public void bluetoothDataReceptionCallback(byte[] data) {
             writeToConsole(DeviceBluetoothService.translateMessage("RX: ", data));
+        }
+
+        @Override
+        public void bluetoothConnectionChanged(boolean connected) {
+            Toast.makeText(mainContext, "Bluetooth device was disconnected", Toast.LENGTH_LONG).show();
+            endConsoleView();
         }
 
     };
