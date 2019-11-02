@@ -1,18 +1,11 @@
 package com.example.ble;
 
-import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanResult;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
-import android.os.Handler;
-import android.util.Log;
 import android.widget.Toast;
 
 public class DeviceBluetoothDetector {
@@ -69,18 +62,19 @@ public class DeviceBluetoothDetector {
         switch (device.getType()) {
             case BluetoothDevice.DEVICE_TYPE_CLASSIC:
                 btServices[1].addDevice(device);
-                activity.addClassic(device);
+//                activity.addClassic(device);
                 Toast.makeText(activity, "Classic device found : "+ device.getName() + " - " + device.getAddress() , Toast.LENGTH_SHORT).show();
 
                 break;
             case BluetoothDevice.DEVICE_TYPE_LE:
                 btServices[0].addDevice(device);
-                activity.addBle(device);
+//                activity.addBle(device);
                 Toast.makeText(activity, "BLE device found : "+ device.getName() + " - " + device.getAddress(), Toast.LENGTH_SHORT).show();
 
                 break;
             default:
                 Toast.makeText(activity, R.string.unknown_btdevice_detected, Toast.LENGTH_SHORT).show();
+                System.out.println(device.toString() + " " + device.getType());
         }
     }
 

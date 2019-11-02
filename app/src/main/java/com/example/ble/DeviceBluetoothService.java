@@ -6,6 +6,7 @@ import android.widget.Toast;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -16,7 +17,7 @@ public abstract class DeviceBluetoothService extends Thread implements Bluetooth
 
     protected LinkedBlockingQueue<byte[]> txQueue;
 
-    protected ArrayList<BluetoothDevice> btDevices;
+    protected HashMap<String, BluetoothDevice> btDevices;
 
     protected AtomicBoolean appIsRunning;
 
@@ -24,7 +25,7 @@ public abstract class DeviceBluetoothService extends Thread implements Bluetooth
 
     protected DeviceBluetoothService(Context context) {
         txQueue = new LinkedBlockingQueue<>();
-        btDevices = new ArrayList<>();
+        btDevices = new HashMap<>();
         appIsRunning = new AtomicBoolean(false);
     }
 
@@ -76,10 +77,26 @@ public abstract class DeviceBluetoothService extends Thread implements Bluetooth
         serviceCB.serviceStopped();
     }
 
+    private BluetoothDeviceListListener callback;
+
+    public void setBluetoothAdapterList( BluetoothDeviceListListener callback) {
+        this.callback = callback;
+    }
+
     public void addDevice(BluetoothDevice device) {
-        if(btDevices.contains(device)) {
-            btDevices.add(device);
+        if(device.getName() == null) {
+            // Filters out all the unnamed bluetooth devices in the lab
+            return;
         }
+        String key = device.getName() + " - " + device.getAddress();
+        if(!btDevices.containsKey(key)) {
+            btDevices.put(key, device);
+            callback.updateDeviceList(new ArrayList<>(btDevices.keySet()));
+        }
+    }
+
+    public BluetoothDevice getChosenDevice(String key) {
+        return btDevices.get(key);
     }
 
     public static String translateMessage(String initialPart, byte[] data) {
@@ -92,5 +109,7 @@ public abstract class DeviceBluetoothService extends Thread implements Bluetooth
         return builder.toString();
     }
 
+
     abstract public void setRxBehavior(BluetoothDataReception rxBehavior);
+
 }
