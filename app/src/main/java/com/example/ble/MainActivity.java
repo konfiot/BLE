@@ -4,10 +4,6 @@ import android.Manifest;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattServer;
-import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -16,6 +12,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,30 +20,35 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
-import java.util.UUID;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    static final int REQUEST_ENABLE_BT = 1;
+    static final int PERMISSION_REQUEST_COARSE_LOCATION = 2;
+    static final int DETECTION_TIMEOUT = 600; // ms
+
+    // Bridge service providers
     BleService bleService;
     BClassicService bclassicService;
+    // Bridge bluetooth detector
     DeviceBluetoothDetector detector;
+
+    // Ble server mode param
+    BleServerMode serverMode;
+
+    // General  local parameters
     BluetoothAdapter btAdapter;
     MainActivity thisActivity;
     BluetoothManager bluetoothManager;
-    final static int REQUEST_ENABLE_BT = 1;
-    static final int PERMISSION_REQUEST_COARSE_LOCATION = 2;
 
-    public final static UUID characteristicUUID = UUID.fromString("af20fbac-2518-4998-9af7-af42540731b3");
-
-    BluetoothGattServer server;
-
+    // This is to display the list of devices available to the bridge
     ArrayList<String> bleItems=new ArrayList<String>();
-    ArrayList<BluetoothDevice> bleDevices=new ArrayList<BluetoothDevice>();
     ArrayAdapter<String> bleadapter;
-
     ArrayList<String> bclassicItems=new ArrayList<String>();
-    ArrayList<BluetoothDevice> bclassicDevices=new ArrayList<BluetoothDevice>();
     ArrayAdapter<String> bclassicadapter;
+
+    private TextView bleSelected, classicSelected;
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -108,17 +110,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void addBle(BluetoothDevice device){
-        bleItems.add(device.getName() + " - " + device.getAddress());
-        bleDevices.add(device);
-        bleadapter.notifyDataSetChanged();
-    }
+    public BluetoothDeviceListListener addBle = new BluetoothDeviceListListener() {
 
-    public void addClassic(BluetoothDevice device){
-        bclassicItems.add(device.getName() + " - " + device.getAddress());
-        bclassicDevices.add(device);
-        bclassicadapter.notifyDataSetChanged();
-    }
+        @Override
+        public void updateDeviceList(List<String> deviceKey) {
+            bleItems.clear();
+            bleItems.addAll(deviceKey);
+            bleadapter.notifyDataSetChanged();
+        }
+    };
+    public BluetoothDeviceListListener addClassic = new BluetoothDeviceListListener() {
+
+        @Override
+        public void updateDeviceList(List<String> deviceKey) {
+            bclassicItems.clear();
+            bclassicItems.addAll(deviceKey);
+            bclassicadapter.notifyDataSetChanged();
+        }
+    };
 
     public void startClassicServer(View view){
         this.detector.scanForDevices(false);
@@ -129,29 +138,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startBleServer(View view){
-        Intent discoverableIntent =
-                new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 600);
-        this.startActivity(discoverableIntent);
 
-        server = bluetoothManager.openGattServer(this, ConsoleActivity.bluetoothGattServerCallback);
+        if(serverMode == null) {
+            serverMode = new BleServerMode(this, btAdapter);
+        }
 
-        BluetoothGattService service = new BluetoothGattService(UUID.fromString("f6ec37db-bda1-46ec-a43a-6d86de88561d"), BluetoothGattService.SERVICE_TYPE_PRIMARY);
-
-        BluetoothGattCharacteristic characteristic = new BluetoothGattCharacteristic(UUID.fromString("af20fbac-2518-4998-9af7-af42540731b3"),
-                BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE |
-                        BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-                BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE);
-
-        service.addCharacteristic(characteristic);
-
-        server.addService(service);
-
-        ConsoleActivity.passBLEConfiguration(this, server);
+        ConsoleActivity.passBLEConfiguration(this, serverMode);
 
         Intent intent = new Intent(this, ConsoleActivity.class);
         startActivity(intent);
     }
+
+    private BluetoothDevice bleDevice, bclassicDevice;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -180,9 +178,13 @@ public class MainActivity extends AppCompatActivity {
         bleService = new BleService(this);
 
         bclassicService = new BClassicService(this);
-
+        bleDevice = null;
+        bclassicDevice = null;
 
         thisActivity = this;
+
+        bleSelected = findViewById(R.id.textBleSelected);
+        classicSelected = findViewById(R.id.testClassicSelected);
 
         bleadapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1,
@@ -192,18 +194,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
                                     long id) {
-                BluetoothDevice deviceBle = bleDevices.get(position);
-                if (deviceBle.getUuids() == null){
-                    Toast.makeText(thisActivity, "Device " + deviceBle.getName() + " - " + deviceBle.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                Toast.makeText(thisActivity, "Connecting to " + deviceBle.getName() + " - " + deviceBle.getAddress() + " " + deviceBle.getUuids(), Toast.LENGTH_SHORT).show();
-                BluetoothGatt bluetoothGatt = deviceBle.connectGatt(thisActivity, false, BleService.bleCallback);
-                bleService.setRxBehavior(bclassicService);
-                bleService.addBluetoothCommunicationHandler(bluetoothGatt);
+                String key = bleItems.get(position);
+                bleDevice = bleService.getChosenDevice(key);
+                bleSelected.setText("BLE device selected: " + key);
             }
         });
-
 
         bclassicadapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_list_item_1,
@@ -213,19 +208,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position,
                                     long id) {
-                BluetoothDevice device = bclassicDevices.get(position);
-                if (device.getUuids() == null){
-                    Toast.makeText(thisActivity, "Device " + device.getName() + " - " + device.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
-                    return;
-                }
 
-                ConnectThread connectThread = new ConnectThread(device, device.getUuids()[0], bleService);
-                bclassicService.addBluetoothCommunicationHandler(connectThread);
-                connectThread.start();
-                Toast.makeText(thisActivity, "Connecting to " + device.getName() + " - " + device.getAddress() + " " + device.getUuids(), Toast.LENGTH_SHORT).show();
-
+                String key = bclassicItems.get(position);
+                bclassicDevice = bclassicService.getChosenDevice(key);
+                classicSelected.setText("Classic device selected: " + key);
             }
         });
+
+        bleService.setBluetoothAdapterList(addBle);
+        bclassicService.setBluetoothAdapterList(addClassic);
 
         bluetoothManager = (BluetoothManager) getSystemService(this.BLUETOOTH_SERVICE);
 
@@ -243,9 +234,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startBridgeMode(View view) {
-        ConsoleActivity.passBridgeConfig(this, bleService, bclassicService);
-        Intent intent = new Intent(this, ConsoleActivity.class);
-        startActivity(intent);
+//        ConsoleActivity.passBridgeConfig(this, bleService, bclassicService);
+        if(ConsoleActivity.newBridgePassConfig(this, bleDevice, bclassicDevice, bleService, bclassicService)) {
+            Intent intent = new Intent(this, ConsoleActivity.class);
+            startActivity(intent);
+        } else {
+            Toast.makeText(this, R.string.unable_to_start_bridge, Toast.LENGTH_LONG).show();
+        }
     }
 }
 
