@@ -1,5 +1,6 @@
 package com.example.ble;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -14,23 +15,30 @@ import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseData;
 import android.bluetooth.le.AdvertiseSettings;
 import android.bluetooth.le.BluetoothLeAdvertiser;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Bundle;
 import android.os.ParcelUuid;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
+
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * This code is inspired by the android GATT server example at :
- * https://github.com/androidthings/sample-bluetooth-le-gattserver/blob/master/java/app/src/main/java/com/example/androidthings/gattserver/GattServerActivity.java
- */
-public class BleServerMode {
+public class BleServerMode extends Activity {
 
     public final static UUID BLE_XFER_CHARACTERISTIC = UUID.fromString("af20fbac-2518-4998-9af7-af42540731b3");
-
     public final static UUID BLE_XFER_SERVICE = UUID.fromString("f6ec37db-bda1-46ec-a43a-6d86de88561d");
+    public final static UUID BLE_CLIENT_DESCRIPTOR = UUID.fromString("f6ec37db-f8e4-11e9-8f0b-362b9e155667");
 
     private BluetoothGattServer bleServer;
 
@@ -42,43 +50,111 @@ public class BleServerMode {
 
     private BluetoothAdapter blueAdapter;
 
-    private Context context;
-
-    private BluetoothDataReception rxCallback;
-
     private BluetoothGattCharacteristic bleServerChar;
 
     private BluetoothGattService bleService;
 
     private AtomicBoolean connected;
 
-    private byte rxByteData[];
+    private BleServerMode context;
 
-    BleServerMode(Context context, BluetoothAdapter adapter) {
-        this.context = context;
-        blueAdapter = adapter;
+    Button sendToBle, stopServer;
+    TextView console;
+    EditText outputMessage;
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.bridge_view);
+
+        context = this;
+
+        blueAdapter = BluetoothAdapter.getDefaultAdapter();
+        bleManager = (BluetoothManager) getSystemService(this.BLUETOOTH_SERVICE);
         connected = new AtomicBoolean(false);
 
+        Button sendToClassic = findViewById(R.id.buttonSendClassic);
+        sendToClassic.setVisibility(View.INVISIBLE);
+
+
+        stopServer = findViewById(R.id.stopButton);
+        sendToBle = findViewById(R.id.buttonSendBLE);
+        console = findViewById(R.id.textConsolSniffer);
+        outputMessage = findViewById(R.id.editSendMessage);
+
+        sendToBle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String message = outputMessage.getText().toString();
+                write(message);
+                updateConsoleMessage("TX: "+ message);
+            }
+        });
+
+        stopServer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                endServer();
+            }
+        });
+
+        // Register for system Bluetooth events
+        IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+        registerReceiver(broadReceiver, filter);
+
+        startAdvertising();
+        startServer();
     }
 
-    void setRxCallback(BluetoothDataReception rxCallback) {
-        this.rxCallback = rxCallback;
+    private BroadcastReceiver broadReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.STATE_OFF);
+            switch (state) {
+                case BluetoothAdapter.STATE_ON:
+                    startAdvertising();
+                    startServer();
+                    break;
+                case BluetoothAdapter.STATE_OFF:
+                    stopAdvertising();
+                    stopServer();
+                    break;
+                default:
+                    //nothing
+            }
+        }
+    };
+
+    protected void endServer() {
+        stopServer();
+        stopAdvertising();
+        finish();
     }
 
-    void updateContext(Context newContext) {
-        context = newContext;
+    void updateConsoleMessage(String message) {
+        console.append(message+"\n");
     }
 
-    void writeDataToDevice(String data) {
-        writeDataToDevice(data.getBytes());
+    void rxMessageReceived(byte data[]) {
+        updateConsoleMessage(DeviceBluetoothService.translateMessage("RX: ", data));
     }
 
-    void writeDataToDevice(byte data[]) {
+    void write(String data) {
+        try {
+            write(data.getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    void write(byte data[]) {
         if(connected.get()) {
             BluetoothGattCharacteristic txChar = bleServer
                     .getService(BLE_XFER_SERVICE)
                     .getCharacteristic(BLE_XFER_CHARACTERISTIC);
+
             txChar.setValue(data);
+
             bleServer.notifyCharacteristicChanged(bleClient, txChar, false);
         }
     }
@@ -92,7 +168,7 @@ public class BleServerMode {
         AdvertiseSettings settings = new AdvertiseSettings.Builder()
                 .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
                 .setConnectable(true)
-                .setTimeout(MainActivity.DETECTION_TIMEOUT)
+                .setTimeout(0)
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM).build();
         AdvertiseData data = new AdvertiseData.Builder()
                 .setIncludeDeviceName(true)
@@ -111,14 +187,18 @@ public class BleServerMode {
     }
 
     boolean startServer() {
-        bleServer = bleManager.openGattServer(context, serverCb);
+        bleServer = bleManager.openGattServer(this, serverCb);
         if(bleServer == null) {
-            Toast.makeText(context, "Could not start bleServer", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Could not start bleServer", Toast.LENGTH_LONG).show();
             return false;
         }
         // Recreates the service for the server
         bleService = new BluetoothGattService(BLE_XFER_SERVICE, BluetoothGattService.SERVICE_TYPE_PRIMARY);
-        bleService.addCharacteristic(getNewCharacteristic());
+        bleServerChar = getNewCharacteristic();
+        bleServerChar.addDescriptor(new BluetoothGattDescriptor(BLE_CLIENT_DESCRIPTOR,
+                BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE));
+        bleService.addCharacteristic(bleServerChar);
+
         // Adds the service to the server
         bleServer.addService(bleService);
         return true;
@@ -152,32 +232,40 @@ public class BleServerMode {
     };
 
     private BluetoothGattServerCallback serverCb = new BluetoothGattServerCallback() {
+
         @Override
         public void onConnectionStateChange(BluetoothDevice device, int status, int newState) {
             if(newState == BluetoothProfile.STATE_CONNECTED) {
-                Toast.makeText(context, "BLE client connected", Toast.LENGTH_SHORT).show();
+                updateConsoleMessage("Connected to device "+ device.getName());
+                connected.set(true);
             } else if(newState == BluetoothProfile.STATE_DISCONNECTED) {
                 connected.set(false);
-                rxCallback.bluetoothConnectionChanged(false);
-                Toast.makeText(context, "BLE client disconnected", Toast.LENGTH_SHORT).show();
+                updateConsoleMessage("Disconnected device "+ device.getName());
+                endServer();
             }
 
         }
 
         @Override
         public void onCharacteristicWriteRequest(BluetoothDevice device, int requestId, BluetoothGattCharacteristic characteristic, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
+            updateConsoleMessage("Device " + device.getName() + " attempted to write to the server");
             if(bleClient.equals(device)) {
                 if (BLE_XFER_CHARACTERISTIC.equals(characteristic.getUuid())) {
-                    rxCallback.bluetoothDataReceptionCallback(value);
+                    System.out.println("Data was received properly");
+                    rxMessageReceived(value);
                 }
             }
         }
 
         @Override
         public void onDescriptorReadRequest(BluetoothDevice device, int requestId, int offset, BluetoothGattDescriptor descriptor) {
-            if(BLE_XFER_SERVICE.equals(descriptor.getUuid())) {
-                byte[] answer = device.equals(bleClient) ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE;
+            updateConsoleMessage("Device "+ device.getName() + "requested to read at description");
+            if(BLE_CLIENT_DESCRIPTOR.equals(descriptor.getUuid())) {
+                byte answer[] = device.equals(bleClient) ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE;
+
+                bleServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, answer);
             } else {
+                updateConsoleMessage("Device description does not match expected");
                 bleServer.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null);
             }
         }
@@ -185,28 +273,32 @@ public class BleServerMode {
         @Override
         public void onDescriptorWriteRequest(BluetoothDevice device, int requestId, BluetoothGattDescriptor descriptor, boolean preparedWrite, boolean responseNeeded, int offset, byte[] value) {
             // Makes sure that the right service can request to subscribe to the server
-            if(BLE_XFER_SERVICE.equals(descriptor.getUuid())) {
+            updateConsoleMessage("Device "+ device.getName() + "requested to write at description");
+            if(BLE_CLIENT_DESCRIPTOR.equals(descriptor.getUuid())) {
                 if (Arrays.equals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE, value)) {
+                    updateConsoleMessage("Added device as client device");
                     bleClient = device;
-                    Toast.makeText(context, "Subscribed the device to the server", Toast.LENGTH_SHORT).show();
-                    connected.set(true);
                 } else if (Arrays.equals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE, value)) {
+                    updateConsoleMessage("Removed device as client device");
                     bleClient = null;
-                    connected.set(false);
-                    Toast.makeText(context, "Subscribed the device to the server", Toast.LENGTH_SHORT).show();
                 }
-
-                rxCallback.bluetoothConnectionChanged(connected.get());
 
                 if (responseNeeded) {
                     bleServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null);
                 }
             } else {
+                updateConsoleMessage("Device description does not match expected");
                 if (responseNeeded) {
                     bleServer.sendResponse(device, requestId, BluetoothGatt.GATT_FAILURE, 0, null);
                 }
             }
 
+        }
+
+        @Override
+        public void onNotificationSent(BluetoothDevice device, int status) {
+            super.onNotificationSent(device, status);
+            updateConsoleMessage("Notification was successfully sent");
         }
     };
 
