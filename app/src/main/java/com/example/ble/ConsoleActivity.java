@@ -1,9 +1,7 @@
 package com.example.ble;
 
 import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothGatt;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -21,24 +19,25 @@ public class ConsoleActivity extends Activity {
 
     static MainActivity mainContext;
 
-    static BluetoothAdapter btAdapter;
-
-    static AcceptThread classicServer;
-
-    static BleServerMode bleServer;
+    static ClassicServerMode classicServer;
 
     static ConsolType currentConsoleType = ConsolType.BRIDGE;
 
+    static ConsoleActivity consoleActivity;
+
     EditText transferConsol;
     Button sendToClassic;
-    Button sendToBle;
+    Button sendToBle, returnToMain;
 
     private static BluetoothServiceStateChange callback = new BluetoothServiceStateChange() {
 
         @Override
-        public void serviceStopped() {
-            bleService.endService();
-            classicService.endService();
+        public void serviceStateChange(boolean isConnected) {
+            if(isConnected) {
+            } else {
+                bleService.endService();
+                classicService.endService();
+            }
         }
 
         @Override
@@ -57,167 +56,133 @@ public class ConsoleActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.bridge_view);
 
+        consoleActivity = this;
+        console = findViewById(R.id.textConsolSniffer);
+        console.setText("Start of interactions\n");
+
+        returnToMain = findViewById(R.id.stopButton);
+        returnToMain.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                endConsoleView();
+            }
+        });
+
         switch(currentConsoleType) {
-            case CLASSIC_SERVER:
-                classicServer = new AcceptThread(btAdapter, mainContext, deviceCommCallbackWhenMissingOtherHalf);
-                classicServer.start();
-                break;
             case BRIDGE:
+                bleService.setRxBehavior(classicService);
+                bleService.setServiceCallback(callback);
+                classicService.setRxBehavior(bleService);
+                classicService.setServiceCallback(callback);
+                bleService.changeContext(this);
+                classicService.changeContext(this);
+                bleService.start();
                 classicService.start();
+                break;
+            case BRIDGE_BLE_ONLY:
+                bleService.setRxBehavior(deviceCommCallbackWhenMissingOtherHalf);
+                bleService.setServiceCallback(callback);
+                bleService.changeContext(this);
                 bleService.start();
                 break;
-            case BLE_SERVER:
-                bleServer.setRxCallback(deviceCommCallbackWhenMissingOtherHalf);
-                bleServer.startServer();
-                bleServer.startAdvertising();
-//                Intent discoverableIntent =
-//                        new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-//                discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 600);
-//                this.startActivity(discoverableIntent);
+            case BRIDEG_CLC_ONLY:
+                classicService.setRxBehavior(deviceCommCallbackWhenMissingOtherHalf);
+                classicService.changeContext(this);
+                classicService.start();
                 break;
         }
 
         sendToBle = findViewById(R.id.buttonSendBLE);
         sendToBle.setVisibility(currentConsoleType == ConsolType.CLASSIC_SERVER? View.INVISIBLE : View.VISIBLE);
-        sendToBle.setEnabled(currentConsoleType == ConsolType.BRIDGE && bleService.serviceIsActive());
+        sendToBle.setEnabled((currentConsoleType.getFlagValue() & ConsolType.BLE_SERVER.getFlagValue()) != 0);
         sendToBle.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(currentConsoleType == ConsolType.BRIDGE) {
-                    bleService.sendDataToDevice(transferConsol.getText().toString());
-                } else {
-                    writeToConsole("TX: " + transferConsol.getText().toString());
-                    bleServer.writeDataToDevice(transferConsol.getText().toString());
+                switch(currentConsoleType) {
+                    case BRIDGE_BLE_ONLY:
+                        writeToConsole("TX: " + transferConsol.getText().toString());
+                    case BRIDGE:
+                        bleService.sendDataToDevice(transferConsol.getText().toString());
+                        break;
+                    default:
+                        // Do nothing
                 }
-                transferConsol.setText(R.string.out_put_message);
+                transferConsol.setText("");
             }
         });
 
         sendToClassic = findViewById(R.id.buttonSendClassic);
         sendToClassic.setVisibility(currentConsoleType == ConsolType.BLE_SERVER? View.INVISIBLE : View.VISIBLE);
+        sendToClassic.setEnabled((currentConsoleType.getFlagValue() & ConsolType.CLASSIC_SERVER.getFlagValue()) != 0);
         sendToClassic.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(currentConsoleType == ConsolType.BRIDGE) {
-                    classicService.sendDataToDevice(transferConsol.getText().toString());
-                } else {
-                    writeToConsole("TX: " + transferConsol.getText().toString());
-                    classicServer.write(transferConsol.getText().toString().getBytes());
+                switch(currentConsoleType) {
+                    case BRIDEG_CLC_ONLY:
+                        writeToConsole("TX: " + transferConsol.getText().toString());
+                    case BRIDGE:
+                        classicService.sendDataToDevice(transferConsol.getText().toString());
+                        break;
+                    default:
+                        // Do nothing
                 }
-                transferConsol.setText(R.string.out_put_message);
+                transferConsol.setText("");
             }
         });
         transferConsol = findViewById(R.id.editSendMessage);
-
     }
 
     static void writeToConsole(String outputString) {
-        console.append(outputString);
+        if(console != null) {
+            console.append(outputString + "\n");
+        } else {
+            Toast.makeText(consoleActivity, "Could not write to console", Toast.LENGTH_LONG).show();
+        }
     }
 
-    static void passBLEConfiguration(MainActivity mainActivity, BleServerMode server) {
+    static void newBridgePassConfig(MainActivity mainActivity, BleService leService, BClassicService clService, ConsolType consolType) {
         mainContext = mainActivity;
-        bleServer = server;
-        currentConsoleType = ConsolType.BLE_SERVER;
-    }
-
-    static void passBridgeConfig(MainActivity context, BleService leService, BClassicService clService) {
-        mainContext = context;
         bleService = leService;
-        bleService.setServiceCallback(callback);
         classicService = clService;
-        classicService.setServiceCallback(callback);
-        currentConsoleType = ConsolType.BRIDGE;
-        if(!bleService.serviceIsActive()) {
-            classicService.setRxBehavior(deviceCommCallbackWhenMissingOtherHalf);
-        }
-        if(!classicService.serviceIsActive()) {
-            bleService.setRxBehavior(deviceCommCallbackWhenMissingOtherHalf);
-        }
+        currentConsoleType = consolType;
     }
 
-    static boolean newBridgePassConfig(MainActivity mainActivity, BluetoothDevice bleDevice, BluetoothDevice classicDevice, BleService leService, BClassicService clService) {
-        if(bleDevice != null) {
-            if (bleDevice.getUuids() == null) {
-                Toast.makeText(mainActivity, "Device " + bleDevice.getName() + " - " + bleDevice.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
-                return false;
-            }
-            Toast.makeText(mainActivity, "Connecting to " +  bleDevice.getName() + " - " + bleDevice.getAddress()  + " " + bleDevice.getUuids(), Toast.LENGTH_SHORT).show();
-            BluetoothGatt bluetoothGatt = bleDevice.connectGatt(mainActivity, false, BleService.bleCallback);
-            if(classicDevice != null) {
-                leService.setRxBehavior(clService);
-            } else {
-                leService.setRxBehavior(deviceCommCallbackWhenMissingOtherHalf);
-            }
-            leService.addBluetoothCommunicationHandler(bluetoothGatt);
-            if(!leService.correctDevice()) {
-                Toast.makeText(mainActivity, R.string.incorrect_ble_connected, Toast.LENGTH_LONG).show();
-                return false;
-            }
-            bleService = leService;
-        }
-        if(classicDevice != null) {
-            if (classicDevice.getUuids() == null){
-                Toast.makeText(mainActivity, "Device " + classicDevice.getName() + " - " + classicDevice.getAddress() + " Has no discovered services, can't connect", Toast.LENGTH_SHORT).show();
-                return false;
-            }
-
-            ConnectThread connectThread;
-            if(bleDevice != null) {
-                connectThread = new ConnectThread(classicDevice, classicDevice.getUuids()[0], bleService);
-
-            } else {
-                connectThread = new ConnectThread(classicDevice, classicDevice.getUuids()[0], deviceCommCallbackWhenMissingOtherHalf);
-            }
-            clService.addBluetoothCommunicationHandler(connectThread);
-            connectThread.start();
-            Toast.makeText(mainActivity, "Connecting to " + classicDevice.getName() + " - " + classicDevice.getAddress() + " " + classicDevice.getUuids(), Toast.LENGTH_SHORT).show();
-        }
-        currentConsoleType = ConsolType.BRIDGE;
-        return true;
-    }
-
-    static void passClassicServerConfig(MainActivity context, BluetoothAdapter adapter) {
-        mainContext = context;
-        btAdapter = adapter;
-        currentConsoleType = ConsolType.CLASSIC_SERVER;
-    }
-
-    public void returnToMainActivity(View view) {
+    public void endConsoleView() {
         switch(currentConsoleType) {
-            case BLE_SERVER:
-                bleServer.stopAdvertising();
-                bleServer.stopServer();
-                break;
-            case CLASSIC_SERVER:
-                classicServer.cancel();
-                btAdapter = null;
-                break;
             case BRIDGE:
                 bleService.endService();
                 classicService.endService();
                 bleService.changeContext(mainContext);
                 classicService.changeContext(mainContext);
                 break;
+            case BRIDEG_CLC_ONLY:
+                classicService.endService();
+                classicService.changeContext(mainContext);
+                break;
+            case BRIDGE_BLE_ONLY:
+                bleService.endService();
+                bleService.changeContext(mainContext);
+                break;
         }
         finish();
     }
 
-    public static void endConsoleView() {
-
-    }
-
-    public static BluetoothDataReception deviceCommCallbackWhenMissingOtherHalf = new BluetoothDataReception() {
+    public BluetoothDataReception deviceCommCallbackWhenMissingOtherHalf = new BluetoothDataReception() {
         @Override
         public void bluetoothDataReceptionCallback(byte[] data) {
             writeToConsole(DeviceBluetoothService.translateMessage("RX: ", data));
         }
 
         @Override
-        public void bluetoothConnectionChanged(boolean connected) {
-            Toast.makeText(mainContext, "Bluetooth device was disconnected", Toast.LENGTH_LONG).show();
+        public void bluetoothConnectionChanged(BluetoothDevice device, boolean connected) {
+            StringBuilder message = new StringBuilder("Bluetooth device ");
+            if(connected) {
+                message.append("connection success");
+            } else {
+                message.append("was disconnected");
+            }
+            Toast.makeText(consoleActivity, message.toString(), Toast.LENGTH_LONG).show();
             endConsoleView();
         }
-
     };
 }

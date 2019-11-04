@@ -1,5 +1,6 @@
 package com.example.ble;
 
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -11,7 +12,6 @@ import android.widget.Toast;
 
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 public class BleService extends DeviceBluetoothService {
 
@@ -36,10 +36,40 @@ public class BleService extends DeviceBluetoothService {
 
     @Override
     protected void sendDataToDevice(byte data[]) {
-        bleCharact.setValue(data);
-        comHandler.writeCharacteristic(bleCharact);
-        serviceCB.dataSent(translateMessage("BLE TX: ", data));
+        BluetoothGattCharacteristic txChar = comHandler.getService(BleServerMode.BLE_XFER_SERVICE).getCharacteristic(BleServerMode.BLE_XFER_CHARACTERISTIC);
+
+        txChar.setValue(data);
+
+        if( comHandler.writeCharacteristic(bleCharact) ) {
+            if(serviceCB != null) {
+                serviceCB.dataSent(translateMessage("BLE TX: ", data));
+            } else {
+                Toast.makeText(context, "Wrote data to Gatt", Toast.LENGTH_LONG).show();
+            }
+        } else {
+            if(serviceCB != null) {
+                serviceCB.dataSent(translateMessage("Unable to send data to BLE: ", data));
+            } else {
+                Toast.makeText(context, "Could not write data to Gatt", Toast.LENGTH_LONG).show();
+            }
+        }
     }
+
+//    private List<BluetoothGattService> gattServices;
+//    public void setupGattServices() {
+//        BluetoothGattService serrvice;
+//        serrvice.
+//    }
+
+//    @Override
+//    public void start() {
+//
+//        BluetoothGattDescriptor desc = new BluetoothGattDescriptor(BleServerMode.BLE_CLIENT_DESCRIPTOR, BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE);
+//        desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+//        comHandler.writeDescriptor(desc);
+//
+//        super.start();
+//    }
 
     @Override
     protected boolean serviceIsActive() {
@@ -57,7 +87,12 @@ public class BleService extends DeviceBluetoothService {
 
     @Override
     public void endService() {
+        if(comHandler == null) {
+            return;
+        }
+        comHandler.disconnect();
         comHandler.close();
+
         super.endService();
     }
 
@@ -89,28 +124,14 @@ public class BleService extends DeviceBluetoothService {
     }
 
     @Override
-    public void bluetoothConnectionChanged(boolean connected) {
-        if(!connected) {
-
-        }
+    public void bluetoothConnectionChanged(BluetoothDevice device, boolean connected) {
+       // Do nothing
     }
 
+    private static boolean deviceConenction;
 
-    public boolean correctDevice() {
-        comHandler.discoverServices();
-        try {
-            Boolean good = serviceResponceCheck.poll(2, TimeUnit.SECONDS);
-            if(good != null && good) {
-                BluetoothGattDescriptor descriptor = new BluetoothGattDescriptor(BleServerMode.BLE_XFER_SERVICE,
-                        BluetoothGattDescriptor.PERMISSION_READ | BluetoothGattDescriptor.PERMISSION_WRITE);
-                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                comHandler.writeDescriptor(descriptor);
-            }
-            return false;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            return false;
-        }
+    public boolean isDeviceConnected() {
+        return deviceConenction;
     }
 
     public static BluetoothGattCallback bleCallback =  new BluetoothGattCallback() {
@@ -118,49 +139,55 @@ public class BleService extends DeviceBluetoothService {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if(newState == BluetoothProfile.STATE_CONNECTED) {
-                Toast.makeText(service.context, "Connected to GATT server.", Toast.LENGTH_LONG).show();
+                deviceConenction = true;
+                gatt.discoverServices();
+                System.out.println("Connected to device " + gatt.getDevice().getName());
             } else if( newState == BluetoothProfile.STATE_DISCONNECTED) {
-                Toast.makeText(service.context, "Disconnected from GATT server", Toast.LENGTH_LONG).show();
+                deviceConenction = false;
+                rxBehavior.bluetoothConnectionChanged( gatt.getDevice(),false);
+                System.out.println("Disconnected from device " + gatt.getDevice().getName());
             }
         }
 
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-            for( BluetoothGattService service : gatt.getServices() ) {
-                if(BleServerMode.BLE_XFER_SERVICE.equals(service.getUuid())) {
-                    serviceResponceCheck.add(true);
-                    return;
+            if(status == BluetoothGatt.GATT_SUCCESS) {
+                for (BluetoothGattService service : gatt.getServices()) {
+                    if (BleServerMode.BLE_XFER_SERVICE.equals(service.getUuid())) {
+                        BluetoothGattCharacteristic ser_char = service.getCharacteristic(BleServerMode.BLE_XFER_CHARACTERISTIC);
+                        if(ser_char != null) {
+                            BluetoothGattDescriptor char_desc = ser_char.getDescriptor(BleServerMode.BLE_CLIENT_DESCRIPTOR);
+                            if(char_desc != null) {
+                                gatt.setCharacteristicNotification(ser_char, true);
+                                char_desc.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                                gatt.writeDescriptor(char_desc);
+                                return;
+                            } else {
+                                System.out.println("Could not get description " + gatt.getDevice().getName());
+                            }
+                        } else {
+                            System.out.println("Could not get characteristic " + gatt.getDevice().getName());
+                        }
+
+                    }
                 }
             }
-            serviceResponceCheck.add(false);
-
-        }
-
-        @Override
-        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            super.onCharacteristicRead(gatt, characteristic, status);
-        }
-
-        @Override
-        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-            //  super.onCharacteristicWrite(gatt, characteristic, status);
-            rxBehavior.bluetoothDataReceptionCallback(characteristic.getValue());
         }
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-            super.onCharacteristicChanged(gatt, characteristic);
-        }
-
-        @Override
-        public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor
-        descriptor, int status) {
-            super.onDescriptorRead(gatt, descriptor, status);
+            rxBehavior.bluetoothDataReceptionCallback(characteristic.getValue());
         }
 
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-            if()
+            if(status == BluetoothGatt.GATT_SUCCESS) {
+                if(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE.equals(descriptor.getValue())) {
+                    rxBehavior.bluetoothConnectionChanged( gatt.getDevice(),true);
+                } else if(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE.equals(descriptor.getValue())){
+                    rxBehavior.bluetoothConnectionChanged( gatt.getDevice(), false);
+                }
+            }
         }
     };
 }

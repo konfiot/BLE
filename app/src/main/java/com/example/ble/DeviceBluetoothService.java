@@ -4,7 +4,6 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.widget.Toast;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -74,7 +73,7 @@ public abstract class DeviceBluetoothService extends Thread implements Bluetooth
 
             }
         }
-        serviceCB.serviceStopped();
+        serviceCB.serviceStateChange(false);
     }
 
     private BluetoothDeviceListListener callback;
@@ -102,7 +101,7 @@ public abstract class DeviceBluetoothService extends Thread implements Bluetooth
     public static String translateMessage(String initialPart, byte[] data) {
         StringBuilder builder = new StringBuilder(initialPart);
         try {
-            builder.append(new String(data, Charset.defaultCharset()));
+            builder.append(new String(data, "UTF-8"));
         } catch(Exception e) {
             builder.append(data.toString());
         }

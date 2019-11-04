@@ -1,5 +1,6 @@
 package com.example.ble;
 
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.widget.Toast;
 
@@ -49,5 +50,12 @@ public class BClassicService extends DeviceBluetoothService {
     public void bluetoothDataReceptionCallback(byte[] data) {
         serviceCB.dataReceived(translateMessage("Classic RX: ",data));
         txQueue.add(data);
+    }
+
+    @Override
+    public void bluetoothConnectionChanged(BluetoothDevice device, boolean connected) {
+        if(!connected) {
+            serviceCB.serviceStateChange(false);
+        }
     }
 }

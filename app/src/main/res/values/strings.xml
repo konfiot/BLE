@@ -27,5 +27,8 @@
     <string name="unable_to_start_bridge">ERROR: Could not initialize bridge component</string>
     <string name="start_advertising">Started advertising BLE server</string>
     <string name="fail_advertising">Failed to advertise server</string>
-    <string name="incorrect_ble_connected">The BLE chosen doe snot have the required service</string>
+    <string name="incorrect_ble_connected">The BLE chosen does not have the required service</string>
+    <string name="ble_string">BLE</string>
+    <string name="classic_string">classic</string>
+    <string name="question_bt_device">What kind of device is this?</string>
 </resources>
